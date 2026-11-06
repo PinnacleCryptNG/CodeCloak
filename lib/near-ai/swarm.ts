@@ -38,6 +38,9 @@ const AUDIT_PROMPTS: Record<AuditorName, string> = {
 };
 const ID_PREFIX: Record<AuditorName, string> = { security: "S", breaking: "B", quality: "Q" };
 
+/** Progress hook for the UI (stage names only, never content). */
+export type SwarmStage = "challenge" | "moderator";
+
 export type SwarmResult = Pick<ReviewResponse, "agents" | "challenges"> & { completions: CompletionRecord[] };
 
 type AgentCall = { content: string | null; record: CompletionRecord };
@@ -132,6 +135,7 @@ export async function runSwarm(
   model: string,
   attestation: VerifiedAttestation,
   deps: ChatDeps = {},
+  onStage?: (stage: SwarmStage) => void,
 ): Promise<SwarmResult> {
   const reviewMessage = buildReviewMessage(files, newDelimiter());
   const call = (agent: AgentName, round: CompletionRecord["round"], system: string, user: string) =>
@@ -148,6 +152,7 @@ export async function runSwarm(
     return parsed;
   });
 
+  onStage?.("challenge");
   // Round 2 — each auditor backs or disputes the other two's findings, in parallel.
   const round2 = await Promise.all(
     AUDITORS.map(async (agent, i): Promise<{ challenge: ChallengeOutput; record?: CompletionRecord }> => {
@@ -164,6 +169,7 @@ export async function runSwarm(
   const challenges = round2.map((r) => r.challenge);
   const contested = contestedFindings(audits, challenges);
 
+  onStage?.("moderator");
   // Round 3 — one moderator call rules on what survived.
   const mod = await call(
     "moderator",

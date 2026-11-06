@@ -77,4 +77,4 @@ export type ReviewResponse = {
   verified: VerifiedPayload;
 };
 
-export type ReviewError = { error: string; checks?: VerifiedPayload["checks"] };
+export type ReviewError = { error: string; message?: string; checks?: VerifiedPayload["checks"] };
