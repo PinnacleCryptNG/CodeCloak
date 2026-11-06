@@ -183,3 +183,20 @@ test("swarm: a failed moderator reports confidence 0 and no basis, even when vot
   assert.equal(r.agents.moderator.confidence, 0);
   assert.equal(r.agents.moderator.confidenceBasis, undefined);
 });
+
+test("swarm: an incomplete moderator reply ({}) is unreadable, with confidence 0 and no basis", async () => {
+  assert.equal(parseModeratorOutput("{}").parseError, true);
+  assert.equal(parseModeratorOutput('{"consensus":[],"summary":"x"}').parseError, true);
+  assert.equal(parseModeratorOutput('{"consensus":[],"disagreements":[],"summary":"x"}').parseError, undefined);
+  const saved = REPLIES.moderator;
+  REPLIES.moderator = {};
+  try {
+    const near = fakeNear();
+    const r = await runSwarm(files, MODEL, attestation, { fetch: near.fetchStub, env });
+    assert.equal(r.agents.moderator.parseError, true);
+    assert.equal(r.agents.moderator.confidence, 0);
+    assert.equal(r.agents.moderator.confidenceBasis, undefined);
+  } finally {
+    REPLIES.moderator = saved;
+  }
+});
