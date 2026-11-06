@@ -16,7 +16,8 @@ export type ChallengeVote = { finding_id: string; stance: "back" | "dispute"; re
 export type ChallengeOutput = { agent: string; votes: ChallengeVote[]; parseError?: true; missing?: string[] };
 
 export type ConsensusItem = { severity: Severity; title: string; agreed_by: string[]; detail: string };
-export type Disagreement = { topic: string; positions: Record<string, string> };
+/** `topic`/`positions` come from the challenge votes when the finding was disputed; `ruling` is the moderator's text for it. */
+export type Disagreement = { topic: string; positions: Record<string, string>; ruling?: string };
 export type ModeratorOutput = {
   agent: "moderator";
   consensus: ConsensusItem[];

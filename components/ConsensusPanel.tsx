@@ -83,6 +83,16 @@ export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutp
                           </dd>
                         </div>
                       ))}
+                      {d.ruling ? (
+                        <div className="flex flex-col items-start gap-1">
+                          <dt>
+                            <AgentTag name="moderator" />
+                          </dt>
+                          <dd className="text-base text-ink-2">
+                            <RichText text={`Ruling: ${d.ruling}`} />
+                          </dd>
+                        </div>
+                      ) : null}
                     </dl>
                   </details>
                 </li>
