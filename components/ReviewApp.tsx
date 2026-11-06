@@ -62,14 +62,14 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
         for (const line of lines.filter(Boolean)) {
-          const event = JSON.parse(line) as { stage?: Phase; result?: ReviewResponse; error?: string };
+          const event = JSON.parse(line) as { stage?: Phase; result?: ReviewResponse; error?: string; message?: string };
           if (event.stage) setPhase(event.stage);
           if (event.result) {
             setResult(event.result);
             setPhase("done");
           }
           if (event.error) {
-            setFailure({ error: event.error });
+            setFailure({ error: event.error, message: event.message });
             setPhase("error");
           }
         }
