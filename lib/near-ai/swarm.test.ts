@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { Wallet } from "ethers";
 import type { VerifiedAttestation } from "./attestation";
-import { MAX_CALLS, contestedFindings, mergeDisagreements, parseChallengeOutput, parseModeratorOutput, runSwarm } from "./swarm";
+import { MAX_CALLS, swarmConfidence, contestedFindings, mergeDisagreements, parseChallengeOutput, parseModeratorOutput, runSwarm } from "./swarm";
 
 const MODEL = "Qwen/Qwen3.8-27B";
 const env = { NEARAI_API_KEY: "test-key" };
@@ -75,7 +75,9 @@ test("swarm: 3 parallel auditors → 3 challenges → moderator; four blocks; ev
   assert.equal(near.order.at(-1), "moderator");
   assert.equal(r.completions.length, 7);
   assert.ok(r.completions.every((c) => c.signature?.status === "verified"));
-  assert.equal(r.agents.moderator.confidence, 100);
+  // S1 (high) backed 2/2, B1 (medium) backed 1/2 → (3·1 + 2·0.5) / 5 = 80; the moderator's 140 is ignored.
+  assert.equal(r.agents.moderator.confidence, 80);
+  assert.equal(r.agents.moderator.confidenceBasis, "3 of 4 challenge votes back the findings (severity-weighted)");
 });
 
 test("swarm: moderator cannot flatten a real dispute — contested findings are added to disagreements", async () => {
@@ -149,4 +151,35 @@ test("swarm: a failed auditor's challenge votes are reported missing", async () 
   const r = await runSwarm(files, MODEL, attestation, { fetch: fakeNear({ fail: "breaking" }).fetchStub, env });
   const br = r.challenges.find((c) => c.agent === "breaking")!;
   assert.ok(br.missing && br.missing.length > 0);
+});
+
+test("swarmConfidence: disputes and missing votes lower it; failed auditors scale it; clean audits score 100", () => {
+  const f = (id: string, severity: "high" | "low") => ({ id, severity, title: "t", file: "a.ts", line_hint: "1", detail: "d" });
+  const audits = [
+    { agent: "security", findings: [f("S1", "high")], summary: "" },
+    { agent: "breaking", findings: [f("B1", "low")], summary: "" },
+    { agent: "quality", findings: [], summary: "" },
+  ];
+  const all = (stance: "back" | "dispute") => [
+    { agent: "security", votes: [{ finding_id: "B1", stance, reason: "" }] },
+    { agent: "breaking", votes: [{ finding_id: "S1", stance, reason: "" }] },
+    { agent: "quality", votes: [{ finding_id: "S1", stance, reason: "" }, { finding_id: "B1", stance, reason: "" }] },
+  ];
+  assert.equal(swarmConfidence(audits, all("back")).confidence, 100);
+  assert.equal(swarmConfidence(audits, all("dispute")).confidence, 0);
+  const missing = [{ agent: "security", votes: [] }, ...all("back").slice(1)];
+  assert.equal(swarmConfidence(audits, missing).confidence, 88); // B1 (low) 1/2 → (3 + 0.5) / 4
+  const failed = [audits[0], audits[1], { ...audits[2], error: "completion_http_500" }];
+  assert.equal(swarmConfidence(failed, all("back")).confidence, 67);
+  assert.match(swarmConfidence(failed, all("back")).basis, /only 2 of 3 auditors ran/);
+  const clean = audits.map((a) => ({ ...a, findings: [] }));
+  assert.deepEqual(swarmConfidence(clean, []), { confidence: 100, basis: "no findings to challenge" });
+});
+
+test("swarm: a failed moderator reports confidence 0 and no basis, even when votes agree", async () => {
+  const near = fakeNear({ fail: "moderator" });
+  const r = await runSwarm(files, MODEL, attestation, { fetch: near.fetchStub, env });
+  assert.ok((r.agents.moderator as { error?: string }).error);
+  assert.equal(r.agents.moderator.confidence, 0);
+  assert.equal(r.agents.moderator.confidenceBasis, undefined);
 });

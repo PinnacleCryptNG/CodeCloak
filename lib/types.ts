@@ -21,7 +21,9 @@ export type ModeratorOutput = {
   agent: "moderator";
   consensus: ConsensusItem[];
   disagreements: Disagreement[];
+  /** Computed from the challenge votes (swarmConfidence), not taken from the model. */
   confidence: number;
+  confidenceBasis?: string;
   summary: string;
   parseError?: true;
 };
