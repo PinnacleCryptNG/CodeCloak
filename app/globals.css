@@ -1,19 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #eef1f6;
-  --paper-2: #e3e8ef;
-  --card: #ffffff;
-  --ink: #011829;
-  --ink-2: #33415a;
-  --muted: #7d8799;
-  --line: #dde2e9;
+  --paper: #f4f1ea;
+  --paper-2: #ebe6db;
+  --card: #fffdf8;
+  --ink: #111214;
+  --ink-2: #3c3e44;
+  --muted: #7f7c74;
+  --line: #e0d9cb;
   --coral: #ff4f3a;
-  --coral-deep: #d93a26;
-  --coral-soft: #ffe7e2;
-  --ok: #12804e;
+  --coral-deep: #d63a25;
+  --coral-soft: #ffe4dd;
+  --night: #101217;
+  --night-2: #191c23;
+  --night-line: #2c303a;
+  --ok: #1d7a4f;
   --bad: #c2321f;
-  --warn: #b46b00;
+  --warn: #a86400;
 }
 
 @theme inline {
@@ -27,12 +30,15 @@
   --color-coral: var(--coral);
   --color-coral-deep: var(--coral-deep);
   --color-coral-soft: var(--coral-soft);
+  --color-night: var(--night);
+  --color-night-2: var(--night-2);
+  --color-night-line: var(--night-line);
   --color-ok: var(--ok);
   --color-bad: var(--bad);
   --color-warn: var(--warn);
   --font-sans: var(--font-geist);
   --font-mono: var(--font-geist-mono);
-  --font-dot: var(--font-doto);
+  --font-display: var(--font-fraunces);
 }
 
 html {
@@ -54,42 +60,75 @@ body {
   background: color-mix(in oklab, var(--coral) 28%, transparent);
 }
 
-/* Dot-matrix display face for hero words and numerals. */
-.font-dot {
-  font-family: var(--font-doto), var(--font-geist-mono), monospace;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  font-variation-settings: "ROND" 0;
-}
-
-/* Two-tone headline: first sentence ink, the rest muted. */
+/* Display serif: the same Fraunces as the logo's "c". */
+.font-display,
 .headline {
-  font-weight: 500;
-  letter-spacing: -0.035em;
-  line-height: 1.04;
-  color: var(--ink);
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-variation-settings: "SOFT" 100, "WONK" 0;
+  font-optical-sizing: auto;
+}
+.headline {
+  font-weight: 480;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  color: inherit;
 }
 .headline .tone {
-  color: var(--muted);
+  font-style: italic;
+  font-weight: 420;
+  color: var(--coral-deep);
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+}
+.on-night .headline .tone {
+  color: var(--coral);
 }
 
-/* Faint dotted texture used inside cards. */
-.dots {
-  background-image: radial-gradient(rgb(1 24 41 / 0.09) 1px, transparent 1px);
-  background-size: 14px 14px;
+/* Thermal receipt: torn, scalloped edges cut out of the paper behind it. */
+.receipt {
+  position: relative;
+  background: var(--card);
+}
+.receipt::before,
+.receipt::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: radial-gradient(circle at 7px 0, var(--perf, var(--paper)) 5px, transparent 5.5px) 0 0 / 14px 8px repeat-x;
+}
+.receipt::before {
+  top: 0;
+}
+.receipt::after {
+  bottom: 0;
+  transform: scaleY(-1);
 }
 
-/* Hero backdrop: soft tile grid. */
-.tiles {
-  background-image:
-    linear-gradient(to right, rgb(1 24 41 / 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(1 24 41 / 0.06) 1px, transparent 1px);
-  background-size: 120px 120px;
-  mask-image: radial-gradient(ellipse at 50% 40%, black 30%, transparent 75%);
+.leader {
+  flex: 1 1 auto;
+  min-width: 1rem;
+  border-bottom: 2px dotted color-mix(in oklab, currentColor 28%, transparent);
+  transform: translateY(-0.3em);
+}
+
+/* Enclave frame: coral corner brackets only. */
+.brackets {
+  --b: var(--coral);
+  background:
+    linear-gradient(var(--b), var(--b)) top left / 22px 2px,
+    linear-gradient(var(--b), var(--b)) top left / 2px 22px,
+    linear-gradient(var(--b), var(--b)) top right / 22px 2px,
+    linear-gradient(var(--b), var(--b)) top right / 2px 22px,
+    linear-gradient(var(--b), var(--b)) bottom left / 22px 2px,
+    linear-gradient(var(--b), var(--b)) bottom left / 2px 22px,
+    linear-gradient(var(--b), var(--b)) bottom right / 22px 2px,
+    linear-gradient(var(--b), var(--b)) bottom right / 2px 22px;
+  background-repeat: no-repeat;
 }
 
 .code-scroll {
-  scrollbar-color: #5d6b80 transparent;
+  scrollbar-color: #5d6270 transparent;
   scrollbar-width: thin;
 }
 
@@ -101,24 +140,32 @@ body {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
 }
-@keyframes scanline {
-  from { transform: translateY(-2.5rem); }
-  to { transform: translateY(13rem); }
+@keyframes print {
+  from { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(-4px); }
+  to { opacity: 1; clip-path: inset(0); transform: none; }
 }
-@keyframes flow {
-  to { stroke-dashoffset: -40; }
+@keyframes redact {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes stamp {
+  0% { opacity: 0; transform: rotate(-9deg) scale(1.7); }
+  60% { opacity: 1; transform: rotate(-9deg) scale(0.94); }
+  100% { opacity: 1; transform: rotate(-9deg) scale(1); }
 }
 .anim-rise { animation: rise 0.45s ease-out both; }
 .anim-pulse { animation: pulse-dot 1.4s ease-in-out infinite; }
-.anim-scanline { animation: scanline 1.6s linear infinite; }
-.anim-flow { stroke-dasharray: 6 34; animation: flow 1.8s linear infinite; }
+.anim-print { animation: print 0.35s ease-out both; }
+.anim-redact { transform-origin: left; animation: redact 0.5s cubic-bezier(0.6, 0, 0.2, 1) both; }
+.anim-stamp { animation: stamp 0.5s cubic-bezier(0.3, 0, 0.2, 1.4) both; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .anim-rise,
   .anim-pulse,
-  .anim-scanline,
-  .anim-flow {
+  .anim-print,
+  .anim-redact,
+  .anim-stamp {
     animation: none;
   }
 }

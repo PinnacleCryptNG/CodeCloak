@@ -4,8 +4,8 @@ import { agentMeta } from "./agents";
 
 export function Eyebrow({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 font-mono text-base font-medium uppercase tracking-[0.12em] text-coral-deep ${className}`}>
-      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-coral" />
+    <span className={`inline-flex items-center gap-2.5 font-mono text-base font-medium uppercase tracking-[0.14em] ${className}`}>
+      <span aria-hidden className="h-2 w-2 rotate-45 bg-coral" />
       {children}
     </span>
   );
@@ -15,15 +15,15 @@ export function SectionHead({ eyebrow, title, lede, id, align = "left" }: { eyeb
   return (
     <div id={id} className={`flex scroll-mt-28 flex-col gap-4 ${align === "center" ? "items-center text-center" : ""}`}>
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 className="headline max-w-3xl text-[2.5rem] sm:text-[3.5rem]">{title}</h2>
-      {lede ? <p className="max-w-2xl text-lg leading-relaxed text-ink-2">{lede}</p> : null}
+      <h2 className="headline max-w-3xl text-[2.6rem] sm:text-[3.8rem]">{title}</h2>
+      {lede ? <p className="max-w-2xl text-lg leading-relaxed opacity-80">{lede}</p> : null}
     </div>
   );
 }
 
 export function Card({ children, className = "", style, as: Tag = "div" }: { children: ReactNode; className?: string; style?: CSSProperties; as?: "div" | "section" | "article" | "li" }) {
   return (
-    <Tag style={style} className={`rounded-[1.25rem] border border-line bg-card shadow-[0_1px_2px_rgba(1,24,41,0.04)] ${className}`}>
+    <Tag style={style} className={`rounded-2xl border border-line bg-card shadow-[0_1px_0_rgba(17,18,20,0.04)] ${className}`}>
       {children}
     </Tag>
   );
@@ -91,7 +91,7 @@ export function Gauge({ value, label, className = "w-44", numberClass = "text-[2
           style={{ transition: "stroke-dashoffset 1s ease-out" }}
         />
       </svg>
-      <span className={`font-dot absolute inset-x-0 bottom-0 text-center leading-none tabular-nums text-ink ${numberClass}`}>
+      <span className={`font-display absolute inset-x-0 bottom-0 text-center leading-none tabular-nums text-ink ${numberClass}`}>
         {value === null ? "—" : value}
       </span>
     </div>
@@ -112,7 +112,7 @@ export function AgentTag({ name, suffix }: { name: string; suffix?: ReactNode })
 export function AgentInitial({ name, size = "h-11 w-11 text-xl" }: { name: string; size?: string }) {
   const m = agentMeta(name);
   return (
-    <span aria-hidden className={`flex ${size} shrink-0 items-center justify-center rounded-xl font-mono font-semibold`} style={{ background: m.color, color: name === "moderator" ? "var(--paper)" : "#fff" }}>
+    <span aria-hidden className={`flex ${size} shrink-0 items-center justify-center rounded-full font-display font-semibold italic`} style={{ background: m.color, color: name === "moderator" ? "var(--paper)" : "#fff" }}>
       {m.label[0]}
     </span>
   );
@@ -120,12 +120,12 @@ export function AgentInitial({ name, size = "h-11 w-11 text-xl" }: { name: strin
 
 export function ButtonLink({ href, children, variant = "primary", className = "" }: { href: string; children: ReactNode; variant?: "primary" | "ghost" | "ink"; className?: string }) {
   const styles = {
-    primary: "bg-coral text-white shadow-[0_1px_0_rgba(255,255,255,0.3)_inset] hover:bg-coral-deep",
-    ink: "bg-ink text-paper hover:bg-ink-2",
-    ghost: "border border-line bg-card text-ink hover:border-ink/30",
+    primary: "bg-ink text-paper hover:bg-coral-deep",
+    ink: "bg-coral text-white hover:bg-coral-deep",
+    ghost: "border border-current/20 text-current hover:border-current/50",
   }[variant];
   return (
-    <a href={href} className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-medium transition ${styles} ${className}`}>
+    <a href={href} className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition ${styles} ${className}`}>
       {children}
     </a>
   );
