@@ -13,7 +13,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
   const kinds = [...new Set(verified.completions.map((c) => c.signature?.signatureKind ?? "unavailable"))];
   const signerMatches = verified.completions.filter((c) => c.signature?.signerMatchesPreflight).length;
-  const modelReport = verified.models[0];
+  const signers = new Set(verified.completions.map((c) => c.signature?.signingAddress?.toLowerCase()).filter(Boolean));
+  const signingReports = verified.models.filter((m) => signers.has(m.signingAddress.toLowerCase()));
   const passed = verified.checks.filter((c) => c.ok).length;
   return (
     <Card className="flex flex-col gap-4">
@@ -41,12 +42,24 @@ export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
         </Row>
         <Row label="Intel TDX">
           gateway {verified.gateway.tcbStatus}
-          {modelReport ? ` · model ${modelReport.tcbStatus}` : ""} · {passed}/{verified.checks.length} checks passed
+          {verified.models.map((m, i) => ` · model[${i}] ${m.tcbStatus}`).join("")} · {passed}/{verified.checks.length} checks passed
         </Row>
         <Row label="NVIDIA GPU">
           {verified.models.map((m) => (m.nvidia === "verified" ? "NRAS verdict verified" : "no GPU evidence")).join(", ") || "—"}
         </Row>
-        <Row label="Model signer">{modelReport ? <Mono>{modelReport.signingAddress}</Mono> : "—"}</Row>
+        <Row label="Model signer">
+          {signingReports.length ? (
+            <div className="flex flex-col gap-1">
+              {signingReports.map((m) => (
+                <Mono key={m.signingAddress}>
+                  {m.signingAddress} ({m.report})
+                </Mono>
+              ))}
+            </div>
+          ) : (
+            "no response signed by a preflight model report"
+          )}
+        </Row>
         <Row label="Verified at">{new Date(verified.verifiedAt).toLocaleString()}</Row>
         <Row label="Reviewed SHA-256">
           <Mono>{verified.reviewedSha256}</Mono>

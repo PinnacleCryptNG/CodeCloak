@@ -3,7 +3,8 @@ import { SignatureBadge } from "./AgentCard";
 import { Card, SeverityChip } from "./ui";
 
 export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutput & { error?: string }; record?: CompletionRecord }) {
-  const confidence = moderator.confidence;
+  const failed = Boolean(moderator.error || moderator.parseError);
+  const confidence = failed ? 0 : moderator.confidence;
   return (
     <Card className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -17,14 +18,19 @@ export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutp
       <div>
         <div className="flex items-baseline justify-between">
           <span className="text-base text-white/60">Swarm confidence</span>
-          <span className="text-3xl font-semibold tabular-nums text-white">{confidence}</span>
+          <span className="text-3xl font-semibold tabular-nums text-white">{failed ? "—" : confidence}</span>
         </div>
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={confidence} aria-label="Swarm confidence">
           <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-emerald-400" style={{ width: `${confidence}%` }} />
         </div>
       </div>
 
-      {moderator.error ? <p className="text-base text-red-300">Moderator failed ({moderator.error}). Disputes below come straight from the challenge votes.</p> : null}
+      {failed ? (
+        <p role="alert" className="rounded-xl border border-red-400/40 bg-red-500/10 p-4 text-base text-red-200">
+          {moderator.error ? `Moderator failed (${moderator.error}).` : "Moderator reply was unreadable, so there is no ruling."} No consensus or confidence is
+          shown; the disputes below come straight from the challenge votes.
+        </p>
+      ) : null}
       {moderator.summary ? <p className="text-base leading-relaxed text-white/80">{moderator.summary}</p> : null}
 
       <div className="flex flex-col gap-3">

@@ -198,6 +198,20 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
               ))}
             </div>
           </Section>
+          {result.challenges.some((c) => c.parseError || c.missing?.length) ? (
+            <div role="status" className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-4 text-base text-amber-100">
+              <p className="font-medium">Challenge round incomplete</p>
+              <ul className="mt-2 flex flex-col gap-1">
+                {result.challenges
+                  .filter((c) => c.parseError || c.missing?.length)
+                  .map((c) => (
+                    <li key={c.agent}>
+                      {c.agent}: {c.parseError ? "reply unreadable — no votes counted" : `no valid vote on ${c.missing?.join(", ")}`}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ) : null}
           <Section title="Consensus" kicker={`${result.agents.moderator.disagreements.length} disagreements`}>
             <ConsensusPanel moderator={result.agents.moderator} record={recordFor("moderator", "moderate")} />
           </Section>
