@@ -132,6 +132,10 @@ export function ReceiptOnView({ perf }: { perf?: string }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (!("IntersectionObserver" in window)) {
+      setSeen(true);
+      return;
+    }
     const io = new IntersectionObserver(([e]) => {
       if (e.isIntersecting) {
         setSeen(true);
@@ -142,7 +146,7 @@ export function ReceiptOnView({ perf }: { perf?: string }) {
     return () => io.disconnect();
   }, []);
   return (
-    <div ref={ref} className={seen ? "" : "invisible"}>
+    <div ref={ref} className={seen ? "" : "await-view"}>
       <Receipt marks animate={seen} perf={perf} />
     </div>
   );

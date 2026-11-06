@@ -61,7 +61,7 @@ export function AgentCard({
           <h4 className="text-2xl font-semibold leading-none text-ink">{meta.label}</h4>
         </div>
         {!output.error ? (
-          <span className="shrink-0 rounded-full px-3 py-1 font-mono text-base" style={{ background: `color-mix(in oklab, ${meta.color} 16%, transparent)`, color: meta.color }}>
+          <span className="shrink-0 rounded-full px-3 py-1 font-mono text-base" style={{ background: `color-mix(in oklab, ${meta.color} 16%, transparent)`, color: `color-mix(in oklab, ${meta.color} 60%, var(--ink))` }}>
             {output.findings.length} {output.findings.length === 1 ? "finding" : "findings"}
           </span>
         ) : null}

@@ -91,7 +91,7 @@ export function Gauge({ value, label, className = "w-44", numberClass = "text-[2
 export function AgentTag({ name, suffix }: { name: string; suffix?: ReactNode }) {
   const m = agentMeta(name);
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-base font-medium" style={{ background: `color-mix(in oklab, ${m.color} 16%, transparent)`, color: m.color }}>
+    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-base font-medium" style={{ background: `color-mix(in oklab, ${m.color} 16%, transparent)`, color: `color-mix(in oklab, ${m.color} 60%, var(--ink))` }}>
       <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: m.color }} />
       {m.label}
       {suffix}

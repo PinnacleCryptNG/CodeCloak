@@ -236,6 +236,9 @@ body {
 .anim-stamp { animation: stamp 0.5s cubic-bezier(0.3, 0, 0.2, 1.4) both; }
 
 /* Scroll reveal: only hidden once JS is known to be running. */
+.js .await-view {
+  visibility: hidden;
+}
 .js [data-reveal] {
   opacity: 0;
   transform: translateY(18px);
