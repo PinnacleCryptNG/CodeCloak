@@ -58,7 +58,7 @@ export function AgentCard({
       <header className="flex flex-wrap items-center justify-between gap-3 px-5 pb-4 pt-5 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <AgentInitial name={name} size="h-10 w-10 text-lg" />
-          <h4 className="font-display text-2xl font-semibold leading-none text-ink">{meta.label}</h4>
+          <h4 className="text-2xl font-semibold leading-none text-ink">{meta.label}</h4>
         </div>
         {!output.error ? (
           <span className="shrink-0 rounded-full px-3 py-1 font-mono text-base" style={{ background: meta.tint, color: meta.color }}>

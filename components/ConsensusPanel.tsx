@@ -39,7 +39,7 @@ export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutp
       <header className="flex flex-col gap-3 px-5 pb-4 pt-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-3">
           <AgentInitial name="moderator" size="h-10 w-10 text-lg" />
-          <h4 className="font-display text-2xl font-semibold leading-none text-ink">Moderator ruling</h4>
+          <h4 className="text-2xl font-semibold leading-none text-ink">Moderator ruling</h4>
         </div>
         <SignatureLine record={record} />
       </header>

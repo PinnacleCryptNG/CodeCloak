@@ -89,7 +89,6 @@ export function HeroDemo() {
 
   return (
     <figure className="relative mx-auto w-full max-w-[34rem]" aria-label="Animated walkthrough of a CodeCloak review">
-      <div aria-hidden className="glow-coral absolute -top-8 right-0 h-72 w-72 rounded-full opacity-40 xl:-right-12" />
       <div className="relative overflow-hidden rounded-[1.5rem] border border-line bg-card shadow-[0_30px_80px_-40px_rgba(22,19,15,0.5)]">
         <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
           <span className="font-mono text-base text-ink-2">orders.ts</span>
@@ -139,7 +138,7 @@ export function HeroDemo() {
                 const found = t >= f.at;
                 return (
                   <li key={f.agent} className="flex min-w-0 items-center gap-3">
-                    <span aria-hidden className="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base font-semibold text-white" style={{ background: m.color }}>
+                    <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base font-semibold text-white" style={{ background: m.color }}>
                       {m.label[0]}
                     </span>
                     {found ? (
@@ -215,7 +214,7 @@ export function HeroDemo() {
           ))}
         </ol>
       </div>
-      <figcaption className="mt-3 text-center text-base text-muted">A real review, replayed: fictional sample, example numbers.</figcaption>
+      <figcaption className="mt-3 text-center font-mono text-base text-muted">A real review, replayed: fictional sample, example numbers.</figcaption>
     </figure>
   );
 }

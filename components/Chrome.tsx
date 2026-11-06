@@ -5,27 +5,28 @@ export const REPO = "https://github.com/PinnacleCryptNG/CodeCloak";
 
 const LINKS = [
   ["/#how", "How it works"],
-  ["/#swarm", "The swarm"],
-  ["/#proof", "Proof"],
+  ["/#review", "Live demo"],
+  ["/#proof", "Security"],
+  ["/#faq", "FAQ"],
 ] as const;
 
 export function Nav() {
   return (
-    <nav className="sticky top-0 z-30 border-b border-line/80 bg-paper/85 backdrop-blur-md">
-      <div className="mx-auto flex h-[4.5rem] w-full max-w-6xl items-center justify-between gap-4 px-5">
+    <nav className="sticky top-2 z-30 mx-2 mt-2 rounded-2xl border border-line bg-card/90 shadow-[0_1px_2px_rgba(1,24,41,0.05)] backdrop-blur-md sm:mx-3">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4">
         <Link href="/" aria-label="codecloak home" className="shrink-0">
           <Wordmark />
         </Link>
         <div className="flex items-center gap-1 text-base">
           {LINKS.map(([href, label]) => (
-            <Link key={href} href={href} className="hidden rounded-full px-3.5 py-2 text-ink-2 transition hover:bg-paper-2 hover:text-ink md:block">
+            <Link key={href} href={href} className="hidden rounded-lg px-3 py-2 text-ink transition hover:bg-paper md:block">
               {label}
             </Link>
           ))}
-          <a href={REPO} target="_blank" rel="noreferrer" className="hidden rounded-full px-3.5 py-2 text-ink-2 transition hover:bg-paper-2 hover:text-ink sm:block">
+          <a href={REPO} target="_blank" rel="noreferrer" className="hidden rounded-lg px-3 py-2 text-ink transition hover:bg-paper sm:block">
             GitHub
           </a>
-          <Link href="/#review" className="ml-2 rounded-full bg-ink px-4 py-2.5 font-semibold text-paper transition hover:bg-ink-2">
+          <Link href="/#review" className="ml-2 rounded-xl bg-coral px-4 py-2 font-medium text-white transition hover:bg-coral-deep">
             Try the demo
           </Link>
         </div>

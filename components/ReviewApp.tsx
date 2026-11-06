@@ -24,12 +24,12 @@ const ERROR_TEXT: Record<string, string> = {
   stream_incomplete: "The review stopped before a result arrived. Nothing was stored; try again.",
 };
 
-function ResultHead({ eyebrow, title, aside }: { eyebrow: string; title: string; aside?: React.ReactNode }) {
+function ResultHead({ eyebrow, title, aside }: { eyebrow: string; title: React.ReactNode; aside?: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="flex flex-col gap-2">
         <Eyebrow>{eyebrow}</Eyebrow>
-        <h3 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-[2.4rem]">{title}</h3>
+        <h3 className="headline text-[2rem] sm:text-[2.6rem]">{title}</h3>
       </div>
       {aside}
     </div>
@@ -149,7 +149,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
           eyebrow="Live demo"
           title={
             <>
-              Try it on a <em className="text-coral">planted bug.</em>
+              Try it on a <span className="tone">planted bug.</span>
             </>
           }
           lede="Four fictional samples, each hiding a real class of bug. Pick one, or paste your own code. It is reviewed in memory and never stored."
@@ -226,7 +226,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
                 type="button"
                 onClick={run}
                 disabled={!canRun}
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-coral px-6 py-4 text-lg font-semibold text-white transition hover:bg-coral-deep disabled:cursor-not-allowed disabled:bg-ink/20 disabled:text-ink/50"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-coral px-6 py-4 text-lg font-medium text-white transition hover:bg-coral-deep disabled:cursor-not-allowed disabled:bg-ink/20 disabled:text-ink/50"
               >
                 {running ? "Reviewing…" : "Run private review"}
                 {running ? null : (
@@ -309,7 +309,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
               <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_18rem]">
                 <div className="flex min-w-0 flex-col gap-4 p-6 sm:p-8">
                   <span className="text-base font-medium text-muted">What the swarm concluded</span>
-                  <p className="font-display text-xl font-normal leading-relaxed text-ink sm:text-2xl sm:leading-snug">
+                  <p className="text-xl font-normal leading-relaxed text-ink sm:text-2xl sm:leading-snug">
                     {moderatorFailed ? "The moderator gave no ruling for this run." : <RichText text={moderator.summary || "No summary given."} />}
                   </p>
                 </div>
@@ -330,7 +330,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
                 ].map(([label, value, tone]) => (
                   <div key={label as string} className="flex min-w-0 flex-col gap-1.5 px-6 py-5">
                     <dt className="text-base text-muted">{label}</dt>
-                    <dd className={`font-display text-4xl font-semibold leading-none tabular-nums ${tone}`}>{value}</dd>
+                    <dd className={`text-4xl font-semibold leading-none tabular-nums ${tone}`}>{value}</dd>
                   </div>
                 ))}
               </dl>
@@ -338,7 +338,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
           </section>
 
           <section className="flex flex-col gap-6">
-            <ResultHead eyebrow="Rounds 1 & 2" title="Each auditor's findings" aside={<span className="text-base text-muted">Tap a finding to see the votes</span>} />
+            <ResultHead eyebrow="Rounds 1 & 2" title={<>Each auditor&apos;s <span className="tone">findings.</span></>} aside={<span className="text-base text-muted">Tap a finding to see the votes</span>} />
             <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
               {AUDITORS.map((a) => (
                 <AgentCard key={a} name={a} output={result.agents[a]} record={recordFor(a, "audit")} votes={votesByFinding} />
@@ -361,12 +361,12 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
           </section>
 
           <section className="flex flex-col gap-6">
-            <ResultHead eyebrow="Round 3" title="What the moderator ruled" />
+            <ResultHead eyebrow="Round 3" title={<>What the moderator <span className="tone">ruled.</span></>} />
             <ConsensusPanel moderator={moderator} record={recordFor("moderator", "moderate")} />
           </section>
 
           <section className="flex flex-col gap-6">
-            <ResultHead eyebrow="Proof" title="Proof it ran privately" />
+            <ResultHead eyebrow="Proof" title={<>Proof it ran <span className="tone">privately.</span></>} />
             <VerifiedPanel verified={result.verified} />
           </section>
         </div>

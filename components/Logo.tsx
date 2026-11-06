@@ -15,8 +15,8 @@ export function LogoMark({ className = "h-9 w-9", title }: { className?: string;
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <LogoMark className="h-9 w-9" />
-      <span className="font-display text-[1.6rem] font-semibold leading-none text-ink">
+      <LogoMark className="h-8 w-8" />
+      <span className="text-[1.15rem] font-semibold leading-none tracking-[-0.02em] text-ink">
         codecloak
       </span>
     </span>

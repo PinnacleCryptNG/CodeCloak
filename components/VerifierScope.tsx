@@ -16,7 +16,7 @@ export const NOT_VERIFIED = [
 export function VerifierScope() {
   return (
     <aside aria-labelledby="verifier-scope" className="rounded-2xl border border-line bg-paper/60 p-5 text-base text-ink-2 sm:p-6">
-      <h4 id="verifier-scope" className="font-display text-xl font-semibold text-ink">
+      <h4 id="verifier-scope" className="text-xl font-semibold text-ink">
         Demo verifier scope
       </h4>
       <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">

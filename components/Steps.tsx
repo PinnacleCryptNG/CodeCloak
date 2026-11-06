@@ -18,7 +18,7 @@ export function Steps({ phase, elapsed, subject }: { phase: Phase; elapsed?: num
   return (
     <div className="flex flex-col gap-5" aria-live="polite">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="font-display text-2xl font-semibold text-ink">
+        <p className="text-2xl font-semibold text-ink">
           {phase === "done" ? "Review complete" : "Reviewing privately"}
           {subject ? <span className="font-mono text-lg font-normal text-muted"> · {subject}</span> : null}
         </p>
