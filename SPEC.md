@@ -20,7 +20,8 @@ C. Fail-closed attestation (hard requirement), before any code leaves the server
    b. Read report_data from the verified quote; require it to bind our nonce and the report's `signing_address`; require echoed `request_nonce` to equal our nonce.
    c. Replay `event_log`; result must equal the quote's RTMR3.
    d. SHA-256 the raw `info.tcb_info.app_compose` string (decode `tcb_info` if it is JSON text; do not reserialize `app_compose`); MRCONFIGID must equal `01` + hash + 15 zero bytes.
-   e. NVIDIA GPU check via NRAS when `nvidia_payload` is present.
+   e. NVIDIA GPU check via NRAS. Required on every model report (missing `nvidia_payload` = fail); on the gateway only when present.
+   f. Pin the quote's MRTD + RTMR0-2 (as one tuple) and the app compose (`composeTemplateHash`: SHA-256 with `INSTANCE_LABEL` masked) to the per-role allowlist in `lib/near-ai/measurements.ts` (override: `CODECLOAK_TRUSTED_MEASUREMENTS`).
    Retain the verified reports (signing_address + signing_algo) for step 5.
 4. Any failure → HTTP 403 `{ "error": "attestation_failed", "checks": [...] }` and do NOT call chat completions.
 5. After completion (non-streaming, canonical model id, x-no-aliasing: true, Accept-Encoding: identity):

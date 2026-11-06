@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test 'lib/**/*.test.ts' 'app/**/*.test.ts' 'scripts/**/*.test.ts'",
-    "test:failclosed": "tsx --test scripts/failclosed.test.ts"
+    "test:failclosed": "tsx --test scripts/failclosed.test.ts",
+    "measurements": "tsx scripts/measurements.ts"
   },
   "dependencies": {
     "@phala/dcap-qvl-node": "^0.3.3",

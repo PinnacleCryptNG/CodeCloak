@@ -17,13 +17,17 @@ import {
   type AttestationDeps,
   type RawReport,
 } from "./attestation";
-import { expectedMrConfigId, replayRtmr3, type VerifiedQuote } from "./tdx";
+import { DEFAULT_TRUSTED_MEASUREMENTS, loadTrustedMeasurements, TRUSTED_MEASUREMENTS_ENV } from "./measurements";
+import { composeTemplateHash, expectedMrConfigId, replayRtmr3, type VerifiedQuote } from "./tdx";
 
 const MODEL = "Qwen/Qwen3.8-27B";
-const ENV = { NEARAI_API_KEY: "test-key" };
+const OS = { mrTd: "a1".repeat(48), rtMr0: "a2".repeat(48), rtMr1: "a3".repeat(48), rtMr2: "a4".repeat(48) };
 const GATEWAY_ADDR = "0x" + "11".repeat(20);
 const MODEL_ADDR = "0x" + "22".repeat(20);
 const APP_COMPOSE = '{"docker_compose_file":"services: {}"}';
+const COMPOSE_HASH = createHash("sha256").update(APP_COMPOSE).digest("hex");
+const TRUSTED = { gateway: { os: [OS], composeTemplates: [COMPOSE_HASH] }, model: { os: [OS], composeTemplates: [COMPOSE_HASH] } };
+const ENV = { NEARAI_API_KEY: "test-key", [TRUSTED_MEASUREMENTS_ENV]: JSON.stringify(TRUSTED) };
 
 function runtimeEvent(event: string, payloadHex: string) {
   const type = Buffer.alloc(4);
@@ -58,6 +62,7 @@ function fakeQuoteVerifier(nonceRef: { value: string }, overrides: Partial<Verif
     reportData: quoteHex + "00".repeat(12) + nonceRef.value,
     mrConfigId: expectedMrConfigId(APP_COMPOSE).toString("hex"),
     rtMr3: replayRtmr3(EVENT_LOG).toString("hex"),
+    ...OS,
     ...overrides,
   });
 }
@@ -67,6 +72,7 @@ type Scenario = {
   quote?: Partial<VerifiedQuote>;
   gpuVerdict?: boolean;
   status?: number;
+  env?: Record<string, string | undefined>;
 };
 
 async function setup(s: Scenario = {}) {
@@ -100,7 +106,7 @@ async function setup(s: Scenario = {}) {
     return Response.json(body);
   }) as typeof fetch;
   const deps: AttestationDeps = {
-    env: ENV,
+    env: s.env ?? ENV,
     fetch: fetchMock,
     verifyQuote: fakeQuoteVerifier(nonceRef, s.quote),
     nvidiaKeys: createLocalJWKSet({ keys: [jwk] }),
@@ -227,6 +233,82 @@ test("review fixes: null model entry, missing model_name, empty GPU payload, no 
   await assert.rejects(assertAttestationOrThrow(MODEL, deps), (error: unknown) => {
     assert.ok(error instanceof AttestationError);
     assert.ok(!JSON.stringify(error.checks).includes("SECRET-EVENT-NAME"));
+    return true;
+  });
+});
+
+test("measurements must be on the allowlist: MRTD, RTMR0-2 and compose hash", async () => {
+  await assertFails({ quote: { mrTd: "ee".repeat(48) } }, "os_measurements_pinned");
+  await assertFails({ quote: { rtMr0: "ee".repeat(48) } }, "os_measurements_pinned");
+  await assertFails({ quote: { rtMr1: "ee".repeat(48) } }, "os_measurements_pinned");
+  await assertFails({ quote: { rtMr2: "ee".repeat(48) } }, "os_measurements_pinned");
+  await assertFails({ quote: { mrTd: "" } }, "os_measurements_pinned");
+  // Self-consistent report (MRCONFIGID matches its own compose) whose compose is not allowlisted.
+  const other = '{"docker_compose_file":"services: {logger: {}}"}';
+  await assertFails(
+    {
+      mutate: (b) => (b.model_attestations[0].info = { tcb_info: { app_compose: other } }),
+      quote: { mrConfigId: expectedMrConfigId(other).toString("hex") },
+    },
+    "compose_hash_pinned",
+  );
+});
+
+test("composeTemplateHash masks only well-formed INSTANCE_LABEL values", () => {
+  const compose = (label: string, image = "img@sha256:aa") =>
+    JSON.stringify({ docker_compose_file: `services:\n  m:\n    image: ${image}\n    environment:\n      - INSTANCE_LABEL=${label}\n` });
+  assert.equal(composeTemplateHash(compose("gpu13")), composeTemplateHash(compose("cm-gpu32-g7")));
+  assert.notEqual(composeTemplateHash(compose("gpu13")), composeTemplateHash(compose("gpu13", "img@sha256:bb")));
+  assert.notEqual(composeTemplateHash(compose("gpu13")), composeTemplateHash(compose("gpu13\n    image: evil")));
+  assert.equal(composeTemplateHash(APP_COMPOSE), COMPOSE_HASH);
+});
+
+test("pins are per role and per OS tuple: no mix-and-match", async () => {
+  const otherOs = { mrTd: "b1".repeat(48), rtMr0: "b2".repeat(48), rtMr1: "b3".repeat(48), rtMr2: "b4".repeat(48) };
+  // Gateway pinned to a different OS image or compose than the one it presents: only the gateway fails.
+  for (const gateway of [
+    { os: [otherOs], composeTemplates: [COMPOSE_HASH] },
+    { os: [OS], composeTemplates: ["cd".repeat(32)] },
+  ]) {
+    const env = { ...ENV, [TRUSTED_MEASUREMENTS_ENV]: JSON.stringify({ ...TRUSTED, gateway }) };
+    const { deps } = await setup({ env });
+    await assert.rejects(assertAttestationOrThrow(MODEL, deps), (error: unknown) => {
+      assert.ok(error instanceof AttestationError);
+      const failed = error.checks.filter((c) => !c.ok).map((c) => `${c.report}:${c.name}`);
+      const expected = gateway.os[0] === OS ? "gateway:compose_hash_pinned" : "gateway:os_measurements_pinned";
+      assert.deepEqual(failed, [expected]);
+      return true;
+    });
+  }
+  const split = { ...TRUSTED, model: { ...TRUSTED.model, os: [{ ...OS, rtMr2: otherOs.rtMr2 }, { ...otherOs, rtMr2: OS.rtMr2 }] } };
+  await assertFails({ env: { ...ENV, [TRUSTED_MEASUREMENTS_ENV]: JSON.stringify(split) } }, "os_measurements_pinned");
+});
+
+test("without an override, the built-in allowlist is enforced", async () => {
+  await assertFails({ env: { NEARAI_API_KEY: "test-key" } }, "os_measurements_pinned");
+  assert.equal(loadTrustedMeasurements({}), DEFAULT_TRUSTED_MEASUREMENTS);
+  assert.ok(DEFAULT_TRUSTED_MEASUREMENTS.model.composeTemplates.length >= 2);
+});
+
+test("malformed trusted-measurements config fails closed before any request", async () => {
+  for (const bad of ["{", "{}", JSON.stringify({ gateway: TRUSTED.gateway, model: { os: [], composeTemplates: [COMPOSE_HASH] } }), JSON.stringify({ ...TRUSTED, model: { os: [{ ...OS, mrTd: "zz" }], composeTemplates: [COMPOSE_HASH] } })]) {
+    const { deps, urls } = await setup({ env: { ...ENV, [TRUSTED_MEASUREMENTS_ENV]: bad } });
+    await assert.rejects(assertAttestationOrThrow(MODEL, deps), (error: unknown) => {
+      assert.ok(error instanceof AttestationError);
+      assert.ok(error.checks.some((c) => c.name === "trusted_measurements" && !c.ok));
+      return true;
+    });
+    assert.equal(urls.length, 0);
+  }
+});
+
+test("model report without nvidia_payload fails; gateway without one passes", async () => {
+  const urls = await assertFails({ mutate: (b) => delete b.model_attestations[0].nvidia_payload }, "nvidia_gpu");
+  assert.ok(!urls.some((u) => u.startsWith(NVIDIA_NRAS_URL)));
+  const { deps } = await setup({ mutate: (b) => delete b.model_attestations[0].nvidia_payload });
+  await assert.rejects(assertAttestationOrThrow(MODEL, deps), (error: unknown) => {
+    assert.ok(error instanceof AttestationError);
+    assert.ok(error.checks.some((c) => c.report === "model[0]" && c.name === "nvidia_gpu" && c.detail === "gpu_payload_missing"));
     return true;
   });
 });

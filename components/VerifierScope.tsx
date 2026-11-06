@@ -2,11 +2,12 @@ export const VERIFIED = [
   "Intel TDX quotes of the NEAR AI gateway and every model enclave, checked with dcap-qvl against Intel collateral. TCB status UpToDate, OutOfDate and TDRelaunchAdvised are accepted and shown above.",
   "Each quote's report data binds the enclave's signing address to this review's fresh 32-byte nonce.",
   "RTMR3 is replayed from the event log, and MRCONFIGID matches the hash of the app compose in the report.",
-  "NVIDIA GPU evidence is checked by NVIDIA NRAS, and its verdict token is verified against NVIDIA's signing keys.",
+  "MRTD, RTMR0-2 (firmware, boot chain, kernel) and the app compose must match an allowlist of NEAR's published enclave images.",
+  "Every model report must carry NVIDIA GPU evidence, checked by NVIDIA NRAS, and its verdict token is verified against NVIDIA's signing keys.",
   "Every response signature covers the exact request and response bytes and must come from a model signer attested before your code was sent.",
 ];
 export const NOT_VERIFIED = [
-  "That the container images in the app compose are reproducible builds of published source. Only the compose hash is checked.",
+  "That the container images in the app compose are reproducible builds of published source. The compose is pinned, not rebuilt.",
   "That the model weights are the named model.",
   "The TLS certificate. It is not bound to the attestation (include_tls_fingerprint=false).",
   "Anything outside the enclaves. Privacy there relies on the TEE boundary.",

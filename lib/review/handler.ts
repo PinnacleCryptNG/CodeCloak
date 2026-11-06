@@ -110,7 +110,9 @@ function publicAttestation(a: VerifiedAttestation): Omit<VerifiedPayload, "compl
     model: a.model,
     nonce: a.nonce,
     verifiedAt: a.verifiedAt,
-    verifier: "Intel TDX quote (dcap-qvl) + RTMR3 replay + MRCONFIGID + NVIDIA NRAS",
+    verifier:
+      "Intel TDX quote (dcap-qvl) + pinned MRTD/RTMR0-2/compose hash + RTMR3 replay + MRCONFIGID" +
+      (a.models.every((m) => m.gpu !== "not_present") ? " + NVIDIA NRAS" : ""),
     gateway: report(a.gateway),
     models: a.models.map(report),
     checks: a.checks,

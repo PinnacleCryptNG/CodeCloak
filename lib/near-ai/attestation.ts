@@ -12,6 +12,7 @@
 import { randomBytes } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
 import {
+  composeTemplateHash,
   expectedMrConfigId,
   expectedReportData,
   hexToBuffer,
@@ -21,6 +22,7 @@ import {
   verifyQuoteWithDcap,
   type QuoteVerifier,
 } from "./tdx";
+import { loadTrustedMeasurements, type RolePolicy, type TrustedMeasurements } from "./measurements";
 
 if (typeof window !== "undefined") throw new Error("lib/near-ai/attestation is server-only");
 
@@ -237,6 +239,8 @@ async function verifyReport(
   report: RawReport,
   signer: SignerIdentity,
   nonce: string,
+  policy: RolePolicy,
+  requireGpu: boolean,
   deps: AttestationDeps,
   checks: Check[],
 ): Promise<VerifiedReport> {
@@ -272,10 +276,26 @@ async function verifyReport(
     const actual = hexToBuffer(quote.mrConfigId, "mr_config_id");
     if (!actual.equals(expectedMrConfigId(readAppCompose(report.info)))) throw new Error("mrconfigid_mismatch");
   });
-  // Any present nvidia_payload (even empty or non-string) must verify; only an absent field is "not_present".
+  // Pins come from the hardware-signed quote, never from fields the report supplies about itself.
+  await step("os_measurements_pinned", () => {
+    const hex = (v: string, name: string) => hexToBuffer(v, name).toString("hex");
+    const actual = { mrTd: hex(quote.mrTd, "mr_td"), rtMr0: hex(quote.rtMr0, "rt_mr0"), rtMr1: hex(quote.rtMr1, "rt_mr1"), rtMr2: hex(quote.rtMr2, "rt_mr2") };
+    const pinned = policy.os.some(
+      (m) => m.mrTd === actual.mrTd && m.rtMr0 === actual.rtMr0 && m.rtMr1 === actual.rtMr1 && m.rtMr2 === actual.rtMr2,
+    );
+    if (!pinned) throw new Error("os_measurements_not_allowlisted");
+  });
+  // The app_compose is bound to the quote by the MRCONFIGID check above.
+  await step("compose_hash_pinned", () => {
+    if (!policy.composeTemplates.includes(composeTemplateHash(readAppCompose(report.info)))) {
+      throw new Error("compose_not_allowlisted");
+    }
+  });
+  // Model reports must carry GPU evidence; any present nvidia_payload (even empty or non-string) must verify.
   const gpu: GpuResult =
-    report.nvidia_payload !== undefined
+    requireGpu || report.nvidia_payload !== undefined
       ? await step("nvidia_gpu", () => {
+          if (report.nvidia_payload === undefined) throw new Error("gpu_payload_missing");
           if (typeof report.nvidia_payload !== "string" || report.nvidia_payload.length === 0) {
             throw new Error("gpu_payload_invalid");
           }
@@ -286,13 +306,22 @@ async function verifyReport(
 }
 
 /**
- * Fail-closed preflight: fresh nonce → report → verify gateway and EVERY model report.
+ * Fail-closed preflight: fresh nonce → report → verify gateway and EVERY model report, with measurements pinned to
+ * the trusted allowlist (lib/near-ai/measurements.ts) and NVIDIA GPU evidence required on every model report.
  * Throws AttestationError (with `checks`) on any failure. Makes no chat completion calls.
  */
 export async function assertAttestationOrThrow(
   model: string,
   deps: AttestationDeps = {},
 ): Promise<VerifiedAttestation> {
+  let trusted: TrustedMeasurements;
+  try {
+    trusted = loadTrustedMeasurements(deps.env);
+  } catch {
+    throw new AttestationError("attestation_failed", [
+      { report: "config", name: "trusted_measurements", ok: false, detail: "trusted_measurements_invalid" },
+    ]);
+  }
   const nonce = generateNonce();
   const response = await fetchAttestationReport(model, nonce, deps);
   const signers = extractSigningAddresses(response);
@@ -305,7 +334,9 @@ export async function assertAttestationOrThrow(
   });
 
   const results = await Promise.allSettled(
-    reports.map((report, i) => verifyReport(signers[i].report, report, signers[i], nonce, deps, checks)),
+    reports.map((report, i) =>
+      verifyReport(signers[i].report, report, signers[i], nonce, i === 0 ? trusted.gateway : trusted.model, i > 0, deps, checks),
+    ),
   );
   if (checks.some((c) => !c.ok) || results.some((r) => r.status === "rejected")) {
     throw new AttestationError("attestation_failed", checks);
