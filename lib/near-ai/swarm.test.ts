@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { Wallet } from "ethers";
 import type { VerifiedAttestation } from "./attestation";
-import { MAX_CALLS, contestedFindings, mergeDisagreements, parseModeratorOutput, runSwarm } from "./swarm";
+import { MAX_CALLS, contestedFindings, mergeDisagreements, parseChallengeOutput, parseModeratorOutput, runSwarm } from "./swarm";
 
 const MODEL = "Qwen/Qwen3.8-27B";
 const env = { NEARAI_API_KEY: "test-key" };
@@ -101,4 +101,25 @@ test("mergeDisagreements keeps moderator entries and does not duplicate covered 
   assert.deepEqual(merged.map((d) => d.topic), ["B1: ruled minor", "S2: x"]);
   assert.equal(contestedFindings([], []).length, 0);
   assert.equal(parseModeratorOutput("garbage").parseError, true);
+});
+
+test("mergeDisagreements: only a topic's leading ID counts as coverage", () => {
+  const merged = mergeDisagreements([{ topic: "B1: related to S1", positions: {} }], [
+    { topic: "B1: crash", positions: {} },
+    { topic: "S1: unsafe input", positions: {} },
+  ]);
+  assert.deepEqual(merged.map((d) => d.topic), ["B1: related to S1", "S1: unsafe input"]);
+});
+
+test("parseChallengeOutput: invalid stances are never agreement; missing votes are reported", () => {
+  const ids = new Set(["S1", "B1"]);
+  const c = parseChallengeOutput("quality", '{"votes":[{"finding_id":"B1","stance":"disputed","reason":"x"},{"finding_id":"S1","stance":"back","reason":"ok"},{"finding_id":"S1","stance":"dispute","reason":"dup"}]}', ids);
+  assert.deepEqual(c.votes, [{ finding_id: "S1", stance: "back", reason: "ok" }]);
+  assert.deepEqual(c.missing, ["B1"]);
+  assert.deepEqual(parseChallengeOutput("quality", "nope", ids).missing, ["S1", "B1"]);
+  const contested = contestedFindings(
+    [{ agent: "breaking", findings: [{ id: "B1", severity: "medium", title: "t", file: "", line_hint: "", detail: "d" }], summary: "" }],
+    [{ agent: "security", votes: [{ finding_id: "B1", stance: "dispute", reason: "no" }] }, c],
+  );
+  assert.match(contested[0].positions.quality, /^no valid vote/);
 });

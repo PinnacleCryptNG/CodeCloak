@@ -12,7 +12,8 @@ export type Finding = { id: string; severity: Severity; title: string; file: str
 export type AgentOutput = { agent: string; findings: Finding[]; summary: string; parseError?: true };
 
 export type ChallengeVote = { finding_id: string; stance: "back" | "dispute"; reason: string };
-export type ChallengeOutput = { agent: string; votes: ChallengeVote[]; parseError?: true };
+/** `missing`: expected finding ids this auditor gave no valid back/dispute vote on (abstained or unreadable). */
+export type ChallengeOutput = { agent: string; votes: ChallengeVote[]; parseError?: true; missing?: string[] };
 
 export type ConsensusItem = { severity: Severity; title: string; agreed_by: string[]; detail: string };
 export type Disagreement = { topic: string; positions: Record<string, string> };
