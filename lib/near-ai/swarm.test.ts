@@ -137,3 +137,16 @@ test("parseChallengeOutput: back+dispute on one finding stays a dispute in eithe
     assert.equal(contested.length, 1);
   }
 });
+
+test("swarm: a failed challenge call is reported as unreadable with every expected vote missing", async () => {
+  const r = await runSwarm(files, MODEL, attestation, { fetch: fakeNear({ fail: "challenge:security" }).fetchStub, env });
+  const sec = r.challenges.find((c) => c.agent === "security")!;
+  assert.equal(sec.parseError, true);
+  assert.ok(sec.missing && sec.missing.length > 0);
+});
+
+test("swarm: a failed auditor's challenge votes are reported missing", async () => {
+  const r = await runSwarm(files, MODEL, attestation, { fetch: fakeNear({ fail: "breaking" }).fetchStub, env });
+  const br = r.challenges.find((c) => c.agent === "breaking")!;
+  assert.ok(br.missing && br.missing.length > 0);
+});

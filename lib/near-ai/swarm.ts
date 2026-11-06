@@ -157,10 +157,12 @@ export async function runSwarm(
   const round2 = await Promise.all(
     AUDITORS.map(async (agent, i): Promise<{ challenge: ChallengeOutput; record?: CompletionRecord }> => {
       const others = audits.filter((_, j) => j !== i).flatMap((a) => a.findings);
-      if (audits[i].error || others.length === 0) return { challenge: { agent, votes: [] } };
-      const res = await call(agent, "challenge", challengeSystemPrompt(agent), buildChallengeMessage(reviewMessage, others));
+      if (others.length === 0) return { challenge: { agent, votes: [] } };
       const ids = new Set(others.map((f) => f.id));
-      const challenge = res.content === null ? { agent, votes: [] } : parseChallengeOutput(agent, res.content, ids);
+      // A failed auditor or challenge call casts no votes; report them as missing, never as silent agreement.
+      if (audits[i].error) return { challenge: { agent, votes: [], missing: [...ids] } };
+      const res = await call(agent, "challenge", challengeSystemPrompt(agent), buildChallengeMessage(reviewMessage, others));
+      const challenge = res.content === null ? { agent, votes: [], parseError: true as const, missing: [...ids] } : parseChallengeOutput(agent, res.content, ids);
       return { challenge, record: res.record };
     }),
   );
