@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const CODE: [string, boolean][] = [
   ["// FICTIONAL demo sample", false],
@@ -32,7 +32,7 @@ export const RECEIPT: Line[] = [
 function Mark({ n }: { n?: string }) {
   if (!n) return null;
   return (
-    <span aria-hidden className="mr-2 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-base leading-none text-paper">
+    <span aria-hidden className="mr-2 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-base leading-none text-white">
       {n}
     </span>
   );
@@ -92,13 +92,13 @@ export function HeroReceipt() {
   const [run, setRun] = useState(0);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = window.setInterval(() => setRun((r) => r + 1), 11000);
+    const t = window.setInterval(() => setRun((r) => r + 1), 12500);
     return () => window.clearInterval(t);
   }, []);
 
   return (
     <div key={run} className="relative mx-auto flex w-full max-w-[29rem] flex-col items-center">
-      <div className="relative z-10 w-[94%] -rotate-[1.5deg] overflow-hidden rounded-xl bg-night text-paper shadow-[0_20px_40px_-20px_rgba(17,18,20,0.6)]">
+      <div className="relative z-10 w-[94%] -rotate-[1.5deg] overflow-hidden on-night rounded-xl border border-night-line bg-night text-paper shadow-[0_20px_40px_-20px_rgba(17,18,20,0.6)]">
         <div className="flex items-center justify-between gap-3 border-b border-night-line px-4 py-2.5">
           <span className="font-mono text-base">orders.ts</span>
           <span className="flex items-center gap-2 font-mono text-base text-coral">
@@ -109,16 +109,41 @@ export function HeroReceipt() {
         <pre className="flex flex-col gap-1 overflow-hidden px-4 py-3 font-mono text-base leading-6">
           {CODE.map(([line, hot], i) => (
             <span key={i} className="relative block whitespace-pre">
-              <span className={hot ? "text-coral" : i === 0 ? "text-[#8b8f99]" : ""}>{line}</span>
-              <span aria-hidden className="anim-redact absolute inset-y-0.5 left-0 right-0 rounded-[3px] bg-[#2a2e38]" style={{ animationDelay: `${0.5 + i * 0.18}s` }} />
+              <span className={`anim-print inline-block ${hot ? "text-coral" : i === 0 ? "text-[#8b8f99]" : ""}`} style={{ animationDelay: `${0.2 + i * 0.22}s` }}>
+                {line}
+              </span>
+              <span aria-hidden className="anim-redact absolute inset-y-0.5 left-0 right-0 rounded-[3px] bg-[#2a2e38]" style={{ animationDelay: `${1.9 + i * 0.14}s` }} />
             </span>
           ))}
         </pre>
       </div>
       <div className="z-0 -mt-3 w-full rotate-[0.8deg]">
-        <Receipt animate delay={1.8} />
+        <Receipt animate delay={2.7} />
       </div>
       <p className="mt-4 text-center text-base text-muted">Example receipt from a fictional sample.</p>
+    </div>
+  );
+}
+
+/** The annotated receipt in the proof section; prints once it scrolls into view. */
+export function ReceiptOnView({ perf }: { perf?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        setSeen(true);
+        io.disconnect();
+      }
+    }, { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={seen ? "" : "invisible"}>
+      <Receipt marks animate={seen} perf={perf} />
     </div>
   );
 }

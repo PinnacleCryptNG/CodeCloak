@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "./Logo";
+import { ThemeToggle } from "./ThemeToggle";
 
 export const REPO = "https://github.com/PinnacleCryptNG/CodeCloak";
 
@@ -27,6 +28,7 @@ export function Nav() {
           <a href={REPO} target="_blank" rel="noreferrer" className="hidden rounded-lg px-3 py-2 text-ink transition hover:bg-paper-2 sm:block">
             GitHub
           </a>
+          <ThemeToggle />
           <Link href="/#review" className="ml-2 rounded-full bg-ink px-5 py-2 font-medium text-paper transition hover:bg-coral-deep">
             Try the demo
           </Link>
@@ -38,11 +40,11 @@ export function Nav() {
 
 export function Footer() {
   return (
-    <footer className="bg-night text-paper">
+    <footer className="on-night border-t border-night-line bg-night text-paper">
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-5 py-14 text-base sm:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]">
         <div className="flex flex-col gap-4">
           <Wordmark />
-          <p className="max-w-sm text-paper/60">Private, multi-agent code review on NEAR AI Cloud. Demo samples are fictional. Open source under MIT.</p>
+          <p className="max-w-sm text-paper/60">Private AI code review on NEAR AI Cloud. Demo samples are fictional. Open source under MIT.</p>
         </div>
         <div className="flex flex-col gap-3">
           <p className="font-mono uppercase tracking-[0.14em] text-paper/50">Product</p>

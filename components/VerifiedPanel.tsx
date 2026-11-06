@@ -8,7 +8,7 @@ const short = (hex: string) => (hex.length > 20 ? `${hex.slice(0, 10)}…${hex.s
 function Check({ ok, label, value }: { ok: boolean; label: string; value: string }) {
   return (
     <li className="flex items-center gap-3 py-3">
-      <span aria-hidden className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-base leading-none text-white ${ok ? "bg-ok" : "bg-bad"}`}>
+      <span aria-hidden className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-base leading-none text-paper ${ok ? "bg-ok" : "bg-bad"}`}>
         {ok ? "✓" : "✗"}
       </span>
       <span className="shrink-0 font-medium text-ink">{label}</span>

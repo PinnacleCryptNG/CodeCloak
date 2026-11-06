@@ -1,9 +1,10 @@
 import { REPO, Footer, Nav } from "@/components/Chrome";
-import { HeroReceipt, Receipt } from "@/components/HeroReceipt";
+import { HeroReceipt, ReceiptOnView } from "@/components/HeroReceipt";
+import { RevealRoot } from "@/components/RevealRoot";
 import { ReviewApp, type SampleView } from "@/components/ReviewApp";
 import { NOT_VERIFIED } from "@/components/VerifierScope";
 import { agentMeta } from "@/components/agents";
-import { AgentInitial, ButtonLink, Eyebrow, SectionHead } from "@/components/ui";
+import { AgentInitial, ButtonLink, SectionHead } from "@/components/ui";
 import { loadAllSamples } from "@/lib/samples";
 
 const SAMPLE_META: Record<string, { title: string; tag: string; blurb: string }> = {
@@ -60,6 +61,22 @@ const FAQ = [
   ["Is it free and open source?", "Yes, MIT licensed. The demo samples are fictional, and you can paste your own code."],
 ];
 
+const BUILT_ON: [string, string, string][] = [
+  ["NEAR AI Cloud", "for private inference", "Every model call runs in NEAR's confidential cloud."],
+  ["Intel TDX", "for sealed enclaves", "Hardware quotes prove which code is running."],
+  ["NVIDIA NRAS", "for GPU attestation", "The GPUs prove they're in confidential mode."],
+  ["Qwen3", "for the three auditors", "An open model, served inside the enclave."],
+];
+
+const FACTS: [string, string][] = [
+  ["Intel TDX", "quotes verified"],
+  ["NVIDIA GPU", "evidence verified"],
+  ["Every response", "signed and checked"],
+  ["Your code", "never stored"],
+];
+
+const d = (s: number) => ({ "--d": `${s}s` }) as React.CSSProperties;
+
 function Wrap({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`mx-auto w-full max-w-6xl px-5 ${className}`}>{children}</div>;
 }
@@ -78,26 +95,31 @@ export default function Home() {
       <Nav />
       <main className="flex flex-1 flex-col">
         <Wrap className="grid grid-cols-1 items-center gap-14 pb-24 pt-14 sm:pt-20 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-10">
-          <div className="flex flex-col gap-7">
-            <Eyebrow className="text-ink-2">Private AI code review · NEAR AI Cloud</Eyebrow>
+          <div className="flex flex-col gap-8">
             <h1 className="headline text-[3rem] sm:text-[4.6rem]">
-              Code review in a sealed room. <span className="tone">With receipts.</span>
+              <span className="anim-rise inline-block">Code review in a sealed room.</span>{" "}
+              <span className="tone anim-rise inline-block" style={{ animationDelay: "0.25s" }}>
+                With receipts.
+              </span>
             </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-ink-2">
+            <p className="anim-rise max-w-xl text-lg leading-relaxed text-ink-2" style={{ animationDelay: "0.45s" }}>
               Your code goes into a hardware-attested enclave. Three AI auditors pull it apart, argue about what they find, and a moderator rules. You walk
               out with the verdict and a signed receipt. The code doesn&apos;t walk out at all.
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="anim-rise flex flex-col gap-3 sm:flex-row" style={{ animationDelay: "0.6s" }}>
               <ButtonLink href="#review">Run a free review →</ButtonLink>
               <ButtonLink href="#proof" variant="ghost">
                 Read the receipt
               </ButtonLink>
             </div>
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-base text-muted">
-              {["Intel TDX", "NVIDIA GPU", "Signed responses", "Zero retention", "MIT"].map((t) => (
-                <li key={t} className="flex items-center gap-2">
-                  <span aria-hidden className="h-1.5 w-1.5 rotate-45 bg-coral" />
-                  {t}
+            <ul className="anim-rise grid max-w-xl grid-cols-2 overflow-hidden rounded-2xl border border-line" style={{ animationDelay: "0.75s" }}>
+              {FACTS.map(([k, v], i) => (
+                <li key={k} className={`flex flex-col gap-0.5 px-4 py-3.5 ${i % 2 ? "border-l border-line" : ""} ${i > 1 ? "border-t border-line" : ""}`}>
+                  <span className="flex items-center gap-2 font-medium">
+                    <span aria-hidden className="h-1.5 w-1.5 shrink-0 rotate-45 bg-coral" />
+                    {k}
+                  </span>
+                  <span className="pl-3.5 text-muted">{v}</span>
                 </li>
               ))}
             </ul>
@@ -106,9 +128,34 @@ export default function Home() {
         </Wrap>
 
         <Wrap className="pb-28">
+          <div data-reveal className="overflow-hidden rounded-3xl border border-line bg-card">
+            <div className="flex flex-col gap-1 border-b border-line px-6 py-5 sm:flex-row sm:items-baseline sm:justify-between sm:px-8">
+              <p className="font-display text-[1.6rem] leading-tight tracking-tight">
+                Built on <span className="italic text-coral-deep">NEAR</span>
+              </p>
+              <p className="text-muted">Private AI code review, end to end inside NEAR AI Cloud.</p>
+            </div>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              {BUILT_ON.map(([name, role, line], i) => (
+                <li
+                  key={name}
+                  data-reveal
+                  style={d(0.1 + i * 0.12)}
+                  className={`flex flex-col gap-2 border-line px-6 py-6 sm:px-8 ${i > 0 ? "border-t" : ""} sm:border-t-0 ${i % 2 ? "sm:border-l" : ""} ${i > 1 ? "sm:border-t lg:border-t-0" : ""} lg:border-l lg:first:border-l-0`}
+                >
+                  <span className="font-display text-[1.9rem] font-semibold leading-none tracking-tight">{name}</span>
+                  <span className="draw block h-[2px] w-10 bg-coral" style={d(0.1 + i * 0.12)} />
+                  <span className="font-mono text-ink">{role}</span>
+                  <span className="leading-relaxed text-muted">{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Wrap>
+
+        <Wrap className="pb-28">
           <SectionHead
             id="how"
-            eyebrow="How it works"
             title={
               <>
                 Five steps. <span className="tone">The last one is forgetting.</span>
@@ -119,6 +166,8 @@ export default function Home() {
             {STEPS.map(([name, desc, tag], i) => (
               <li
                 key={name}
+                data-reveal
+                style={d(i * 0.09)}
                 className="grid grid-cols-[3.25rem_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2 border-b border-line py-7 sm:grid-cols-[4.5rem_11rem_minmax(0,1fr)_auto] sm:gap-x-6"
               >
                 <span className="font-display text-[1.6rem] italic leading-none text-coral-deep">0{i + 1}</span>
@@ -130,11 +179,10 @@ export default function Home() {
           </ol>
         </Wrap>
 
-        <section id="swarm" className="on-night scroll-mt-16 bg-night py-24 text-paper sm:py-32">
+        <section id="swarm" className="on-night scroll-mt-16 border-y border-night-line bg-night py-24 text-paper sm:py-32">
           <Wrap className="grid grid-cols-1 gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
             <div className="flex flex-col gap-10">
               <SectionHead
-                eyebrow="Inside the enclave"
                 title={
                   <>
                     Inside, they argue. <span className="tone">On purpose.</span>
@@ -143,8 +191,8 @@ export default function Home() {
                 lede="One model agrees with itself. CodeCloak gives three auditors one job each, makes them cross-examine each other, and lets a moderator rule. Disagreements stay on the record."
               />
               <ul className="flex flex-col divide-y divide-night-line border-y border-night-line">
-                {AGENTS.map(([id, line]) => (
-                  <li key={id} className="flex items-center gap-4 py-4">
+                {AGENTS.map(([id, line], i) => (
+                  <li key={id} data-reveal style={d(i * 0.1)} className="flex items-center gap-4 py-4">
                     <AgentInitial name={id} size={`h-10 w-10 text-lg ${id === "moderator" ? "ring-1 ring-paper/40" : ""}`} />
                     <div className="flex min-w-0 flex-col">
                       <span className="font-medium">{agentMeta(id).label}</span>
@@ -154,11 +202,11 @@ export default function Home() {
                 ))}
               </ul>
             </div>
-            <div className="brackets relative flex flex-col gap-5 p-5 sm:p-8">
+            <div data-reveal className="brackets scan relative flex flex-col gap-5 p-5 sm:p-8">
               <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-base text-paper/60">
                 <span className="flex items-center gap-2 text-coral">
                   <span aria-hidden className="anim-pulse h-2 w-2 rounded-full bg-coral" />
-                  sealed · attested
+                  inside the enclave
                 </span>
                 <span>orders.ts · fictional</span>
               </div>
@@ -166,7 +214,7 @@ export default function Home() {
                 {THREAD.map((m, i) => {
                   const meta = agentMeta(m.who);
                   return (
-                    <li key={i} className={`flex gap-3 ${m.verb === "backs" || m.verb === "disputes" ? "sm:pl-12" : ""}`}>
+                    <li key={i} data-reveal style={d(0.5 + i * 0.55)} className={`flex gap-3 ${m.verb === "backs" || m.verb === "disputes" ? "sm:pl-12" : ""}`}>
                       <AgentInitial name={m.who} size={`h-9 w-9 text-base ${m.who === "moderator" ? "ring-1 ring-paper/40" : ""}`} />
                       <div className={`flex min-w-0 flex-1 flex-col gap-2 rounded-2xl rounded-tl-sm border px-4 py-3 ${m.verb === "ruling" ? "border-paper/30 bg-night-2" : "border-night-line bg-night-2/60"}`}>
                         <div className="flex flex-wrap items-center gap-2">
@@ -182,7 +230,7 @@ export default function Home() {
                   );
                 })}
               </ol>
-              <p className="border-t border-night-line pt-4 font-mono text-base text-paper/60">Kept after the response: nothing.</p>
+              <p data-reveal style={d(3.4)} className="caret border-t border-night-line pt-4 font-mono text-base text-paper/60">Kept after the response: nothing.</p>
             </div>
           </Wrap>
         </section>
@@ -194,12 +242,11 @@ export default function Home() {
         <section className="border-y border-line bg-paper-2/60 py-24 sm:py-28">
           <Wrap className="grid grid-cols-1 gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
             <div className="order-2 mx-auto w-full max-w-[28rem] rotate-[-0.6deg] lg:order-1">
-              <Receipt marks perf="color-mix(in oklab, var(--paper-2) 60%, var(--paper))" />
+              <ReceiptOnView perf="color-mix(in oklab, var(--paper-2) 60%, var(--paper))" />
             </div>
             <div className="order-1 flex flex-col gap-10 lg:order-2">
               <SectionHead
                 id="proof"
-                eyebrow="The receipt"
                 title={
                   <>
                     You leave with a receipt, <span className="tone">not a promise.</span>
@@ -208,17 +255,17 @@ export default function Home() {
                 lede="Every review ends with one. Each line is checked on the server before or after the models run, and a failed check is shown as failed, never as a badge."
               />
               <ol className="flex flex-col gap-5">
-                {RECEIPT_NOTES.map(([t, d], i) => (
-                  <li key={t} className="flex gap-4">
+                {RECEIPT_NOTES.map(([t, desc], i) => (
+                  <li key={t} data-reveal style={d(i * 0.1)} className="flex gap-4">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink font-mono text-base text-paper">{i + 1}</span>
                     <div className="flex flex-col gap-1">
                       <span className="font-medium">{t}</span>
-                      <span className="leading-relaxed text-ink-2">{d}</span>
+                      <span className="leading-relaxed text-ink-2">{desc}</span>
                     </div>
                   </li>
                 ))}
               </ol>
-              <div className="rounded-2xl border-2 border-dashed border-line p-6">
+              <div data-reveal className="rounded-2xl border-2 border-dashed border-line p-6">
                 <p className="font-medium">What it doesn&apos;t prove, yet</p>
                 <ul className="mt-3 flex flex-col gap-2">
                   {NOT_VERIFIED.map((t) => (
@@ -237,14 +284,13 @@ export default function Home() {
           <div className="flex flex-col gap-8">
             <SectionHead
               id="faq"
-              eyebrow="Questions"
               title={
                 <>
                   Fair questions, <span className="tone">straight answers.</span>
                 </>
               }
             />
-            <div className="divide-y divide-line border-y border-line">
+            <div data-reveal className="divide-y divide-line border-y border-line">
               {FAQ.map(([q, a], i) => (
                 <details key={q} className="group py-5" open={i === 0}>
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium [&::-webkit-details-marker]:hidden">
@@ -258,7 +304,7 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div className="flex flex-col gap-5 lg:pt-24">
+          <div data-reveal style={d(0.15)} className="flex flex-col gap-5 lg:pt-24">
             <p className="font-display text-[1.9rem] leading-tight tracking-tight">
               Run it yourself. <span className="italic text-coral-deep">One key.</span>
             </p>
@@ -289,9 +335,9 @@ export default function Home() {
           </div>
         </Wrap>
 
-        <section className="on-night bg-night text-paper">
+        <section className="on-night border-t border-night-line bg-night text-paper">
           <Wrap className="flex flex-col items-start gap-8 border-b border-night-line py-24 sm:py-28">
-            <h2 className="headline max-w-4xl text-[2.8rem] sm:text-[4.6rem]">
+            <h2 data-reveal className="headline max-w-4xl text-[2.8rem] sm:text-[4.6rem]">
               Bring your code. <span className="tone">Take only the receipt.</span>
             </h2>
             <ButtonLink href="#review" variant="ink">
@@ -301,6 +347,7 @@ export default function Home() {
         </section>
       </main>
       <Footer />
+      <RevealRoot />
     </>
   );
 }

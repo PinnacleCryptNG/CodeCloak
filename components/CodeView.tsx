@@ -25,7 +25,7 @@ export function CodeView({ files }: { files: { name: string; content: string }[]
   if (!file) return null;
   const lines = file.content.replace(/\n$/, "").split("\n").length;
   return (
-    <div className="flex h-full max-h-[30rem] min-w-0 flex-col overflow-hidden rounded-2xl bg-ink lg:max-h-none">
+    <div className="flex h-full max-h-[30rem] min-w-0 flex-col overflow-hidden rounded-2xl bg-code lg:max-h-none">
       <div role="tablist" aria-label="Sample files" className="flex min-w-0 gap-1 overflow-x-auto border-b border-white/10 px-3 pt-2">
         {files.map((f, i) => (
           <button
@@ -41,7 +41,7 @@ export function CodeView({ files }: { files: { name: string; content: string }[]
         ))}
       </div>
       <div className="code-scroll flex min-h-[18rem] flex-1 overflow-auto font-mono text-base leading-7 lg:min-h-0">
-        <pre aria-hidden className="sticky left-0 shrink-0 select-none bg-ink py-4 pl-4 pr-3 text-right text-[#5d564c]">
+        <pre aria-hidden className="sticky left-0 shrink-0 select-none bg-code py-4 pl-4 pr-3 text-right text-[#5d564c]">
           {Array.from({ length: lines }, (_, i) => i + 1).join("\n")}
         </pre>
         <pre className="min-w-0 flex-1 py-4 pr-5 text-[#e9e1d4]">

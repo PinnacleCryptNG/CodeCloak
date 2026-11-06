@@ -2,19 +2,9 @@ import type { CSSProperties, ReactNode } from "react";
 import type { Severity } from "@/lib/types";
 import { agentMeta } from "./agents";
 
-export function Eyebrow({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function SectionHead({ title, lede, id, align = "left" }: { title: ReactNode; lede?: ReactNode; id?: string; align?: "left" | "center" }) {
   return (
-    <span className={`inline-flex items-center gap-2.5 font-mono text-base font-medium uppercase tracking-[0.14em] ${className}`}>
-      <span aria-hidden className="h-2 w-2 rotate-45 bg-coral" />
-      {children}
-    </span>
-  );
-}
-
-export function SectionHead({ eyebrow, title, lede, id, align = "left" }: { eyebrow: string; title: ReactNode; lede?: ReactNode; id?: string; align?: "left" | "center" }) {
-  return (
-    <div id={id} className={`flex scroll-mt-28 flex-col gap-4 ${align === "center" ? "items-center text-center" : ""}`}>
-      <Eyebrow>{eyebrow}</Eyebrow>
+    <div id={id} data-reveal className={`flex scroll-mt-28 flex-col gap-5 ${align === "center" ? "items-center text-center" : ""}`}>
       <h2 className="headline max-w-3xl text-[2.6rem] sm:text-[3.8rem]">{title}</h2>
       {lede ? <p className="max-w-2xl text-lg leading-relaxed opacity-80">{lede}</p> : null}
     </div>
@@ -30,9 +20,9 @@ export function Card({ children, className = "", style, as: Tag = "div" }: { chi
 }
 
 const SEVERITY_STYLE: Record<Severity, string> = {
-  high: "bg-[#fde3de] text-[#a42a18]",
-  medium: "bg-[#fbecd2] text-[#8a5200]",
-  low: "bg-[#e3e9fb] text-[#2443a3]",
+  high: "bg-sev-high text-sev-high-fg",
+  medium: "bg-sev-med text-sev-med-fg",
+  low: "bg-sev-low text-sev-low-fg",
   info: "bg-paper-2 text-muted",
 };
 
@@ -42,7 +32,7 @@ export function SeverityChip({ severity }: { severity: Severity }) {
 
 export function Status({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
-    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-base font-medium ${ok ? "border-[#bfdcc9] bg-[#e6f2ea] text-ok" : "border-[#efc3bb] bg-[#fbe6e2] text-bad"}`}>
+    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-base font-medium ${ok ? "border-ok-line bg-ok-soft text-ok" : "border-bad-line bg-bad-soft text-bad"}`}>
       <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${ok ? "bg-ok" : "bg-bad"}`} />
       <span className="min-w-0 truncate">{children}</span>
     </span>
@@ -101,7 +91,7 @@ export function Gauge({ value, label, className = "w-44", numberClass = "text-[2
 export function AgentTag({ name, suffix }: { name: string; suffix?: ReactNode }) {
   const m = agentMeta(name);
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-base font-medium" style={{ background: m.tint, color: m.color }}>
+    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-base font-medium" style={{ background: `color-mix(in oklab, ${m.color} 16%, transparent)`, color: m.color }}>
       <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: m.color }} />
       {m.label}
       {suffix}
