@@ -1,79 +1,137 @@
 import type { AgentOutput, ChallengeVote, CompletionRecord } from "@/lib/types";
-import { Badge, Card, SeverityChip } from "./ui";
+import { agentMeta } from "./agents";
+import { AgentInitial, AgentTag, Card, RichText, SeverityChip } from "./ui";
 
 export type ReceivedVote = ChallengeVote & { agent: string };
 
-export function SignatureBadge({ record }: { record?: CompletionRecord }) {
-  if (!record) return <Badge ok={false}>Not run</Badge>;
-  const sig = record.signature;
-  if (sig?.status === "verified") return <Badge ok>Signed · {sig.signatureKind === "provider_tee" ? "model TEE" : "gateway"}</Badge>;
-  return <Badge ok={false}>Unverified{record.error ? ` · ${record.error}` : sig ? ` · ${sig.reason}` : ""}</Badge>;
+/** One-line signature state. Green only for a verified signature. */
+export function SignatureLine({ record }: { record?: CompletionRecord }) {
+  const sig = record?.signature;
+  const ok = sig?.status === "verified";
+  const text = !record
+    ? "Not run"
+    : ok
+      ? `Signed in ${sig.signatureKind === "provider_tee" ? "model enclave" : "gateway"}`
+      : `Unverified${record.error ? ` · ${record.error}` : sig ? ` · ${sig.reason}` : ""}`;
+  return (
+    <span className={`inline-flex min-w-0 items-center gap-2 text-base font-medium ${ok ? "text-ok" : "text-bad"}`}>
+      <span aria-hidden className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-base leading-none text-white ${ok ? "bg-ok" : "bg-bad"}`}>
+        {ok ? "✓" : "✗"}
+      </span>
+      <span className="truncate">{text}</span>
+    </span>
+  );
+}
+
+function VoteDots({ votes }: { votes: ReceivedVote[] }) {
+  if (votes.length === 0) return <span className="text-base text-muted">No votes</span>;
+  const backs = votes.filter((v) => v.stance !== "dispute").length;
+  const disputes = votes.length - backs;
+  return (
+    <span className="flex items-center gap-2 text-base text-muted">
+      <span className="flex -space-x-1" aria-hidden>
+        {votes.map((v) => (
+          <span key={v.agent} className={`h-3 w-3 rounded-full ring-2 ring-card ${v.stance === "dispute" ? "bg-coral" : "bg-ok"}`} />
+        ))}
+      </span>
+      <span>
+        {backs} back{disputes ? <span className="text-coral-deep"> · {disputes} dispute</span> : null}
+      </span>
+    </span>
+  );
 }
 
 export function AgentCard({
   name,
-  lens,
   output,
   record,
   votes,
 }: {
   name: string;
-  lens: string;
   output: AgentOutput & { error?: string };
   record?: CompletionRecord;
   votes: Map<string, ReceivedVote[]>;
 }) {
+  const meta = agentMeta(name);
   return (
-    <Card className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold capitalize text-white">{name}</h3>
-          <p className="text-base text-white/50">{lens}</p>
+    <Card as="article" className="anim-rise flex min-w-0 flex-col overflow-hidden">
+      <header className="flex items-center justify-between gap-3 px-5 pb-4 pt-5 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <AgentInitial name={name} size="h-10 w-10 text-lg" />
+          <h4 className="font-display truncate text-2xl font-semibold leading-none text-ink">{meta.label}</h4>
         </div>
-        <SignatureBadge record={record} />
+        {!output.error ? (
+          <span className="shrink-0 rounded-full px-3 py-1 font-mono text-base" style={{ background: meta.tint, color: meta.color }}>
+            {output.findings.length} {output.findings.length === 1 ? "finding" : "findings"}
+          </span>
+        ) : null}
       </header>
+      <div className="h-1" style={{ background: meta.color }} aria-hidden />
+
       {output.error ? (
-        <p className="text-base text-red-300">Auditor failed ({output.error}).</p>
+        <p className="p-5 text-base text-bad sm:px-6">Auditor failed ({output.error}).</p>
       ) : output.findings.length === 0 ? (
-        <p className="text-base text-white/60">{output.parseError ? "Reply could not be parsed." : "No findings in this lens."}</p>
+        <p className="p-5 text-base text-ink-2 sm:px-6">{output.parseError ? "Reply could not be parsed." : "Nothing found through this lens."}</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col divide-y divide-line">
           {output.findings.map((f) => {
             const received = votes.get(f.id) ?? [];
             return (
-              <li key={f.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <div className="flex items-start gap-3">
-                  <SeverityChip severity={f.severity} />
-                  <p className="font-medium text-white">
-                    <span className="text-white/40">{f.id} </span>
-                    {f.title}
-                  </p>
-                </div>
-                {f.file || f.line_hint ? (
-                  <p className="mt-2 break-all font-mono text-base text-white/50">
-                    {f.file}
-                    {f.line_hint ? ` · ${f.line_hint}` : ""}
-                  </p>
-                ) : null}
-                <p className="mt-2 text-base leading-relaxed text-white/75">{f.detail}</p>
-                {received.length > 0 ? (
-                  <ul className="mt-3 flex flex-col gap-1.5 border-t border-white/10 pt-3">
-                    {received.map((v) => (
-                      <li key={v.agent} className="text-base">
-                        <span className={v.stance === "dispute" ? "font-medium text-amber-300" : "font-medium text-emerald-300"}>
-                          {v.agent} {v.stance === "dispute" ? "disputes" : "backs"}:
-                        </span>{" "}
-                        <span className="text-white/70">{v.reason}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
+              <li key={f.id}>
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none flex-col gap-2 px-5 py-4 transition hover:bg-paper/50 sm:px-6 [&::-webkit-details-marker]:hidden">
+                    <span className="flex items-start gap-3">
+                      <SeverityChip severity={f.severity} />
+                      <span className="line-clamp-2 min-w-0 flex-1 font-semibold leading-snug text-ink">
+                        <RichText text={f.title} />
+                      </span>
+                      <span aria-hidden className="mt-0.5 shrink-0 text-lg leading-none text-muted transition group-open:rotate-45">
+                        +
+                      </span>
+                    </span>
+                    <span className="flex items-center justify-between gap-3 pl-0.5">
+                      <span className="font-mono text-base text-muted">{f.id}</span>
+                      <VoteDots votes={received} />
+                    </span>
+                  </summary>
+                  <div className="flex flex-col gap-3 px-5 pb-5 sm:px-6">
+                    {f.file || f.line_hint ? (
+                      <p className="line-clamp-2 break-all rounded-lg bg-paper-2/70 px-3 py-2 font-mono text-base text-ink-2">
+                        {f.file}
+                        {f.line_hint ? ` · ${f.line_hint}` : ""}
+                      </p>
+                    ) : null}
+                    <p className="text-base leading-relaxed text-ink-2">
+                      <RichText text={f.detail} />
+                    </p>
+                    {received.length > 0 ? (
+                      <ul className="flex flex-col gap-3 border-l-2 border-line pl-4">
+                        {received.map((v) => (
+                          <li key={v.agent} className="flex flex-col items-start gap-1">
+                            <AgentTag name={v.agent} suffix={v.stance === "dispute" ? " disputes" : " backs"} />
+                            <span className="text-base text-ink-2">
+                              <RichText text={v.reason} />
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                </details>
               </li>
             );
           })}
         </ul>
       )}
-      {output.summary ? <p className="text-base leading-relaxed text-white/60">{output.summary}</p> : null}
+
+      <footer className="mt-auto flex flex-col gap-3 border-t border-line px-5 py-4 sm:px-6">
+        {output.summary ? (
+          <p className="line-clamp-3 text-base leading-relaxed text-muted">
+            <RichText text={output.summary} />
+          </p>
+        ) : null}
+        <SignatureLine record={record} />
+      </footer>
     </Card>
   );
 }
