@@ -57,6 +57,8 @@ test("input validation rejects before any network call", async () => {
   assert.equal((await review({ mode: "demo", sampleId: "../etc" })).status, 400);
   assert.equal((await review({ mode: "paste", code: "a".repeat(80 * 1024 + 1) })).status, 413);
   assert.equal((await review({ mode: "paste", code: "a\u0000b" })).status, 415);
+  const huge = new Request("http://localhost/api/review", { method: "POST", body: "x".repeat(200 * 1024) });
+  assert.equal((await POST(huge)).status, 413);
   assert.equal(calls.length, 0);
 });
 

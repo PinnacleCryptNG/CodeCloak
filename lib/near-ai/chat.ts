@@ -81,13 +81,18 @@ export async function chatCompletion(
   }
   if (!response.ok) throw new ChatError(`completion_http_${response.status}`);
   const raw = new Uint8Array(await response.arrayBuffer());
-  let parsed: { id?: unknown; model?: unknown; choices?: { message?: { content?: unknown } }[] };
+  let json: unknown;
   try {
-    parsed = JSON.parse(new TextDecoder().decode(raw));
+    json = JSON.parse(new TextDecoder().decode(raw));
   } catch {
     throw new ChatError("completion_invalid_json");
   }
-  const content = parsed.choices?.[0]?.message?.content;
+  if (!json || typeof json !== "object" || !Array.isArray((json as { choices?: unknown }).choices)) {
+    throw new ChatError("completion_malformed");
+  }
+  const parsed = json as { id?: unknown; model?: unknown; choices: { message?: { content?: unknown } }[] };
+  const first = parsed.choices[0];
+  const content = first && typeof first === "object" ? first.message?.content : undefined;
   if (typeof parsed.id !== "string" || !parsed.id || typeof content !== "string") {
     throw new ChatError("completion_malformed");
   }
@@ -216,7 +221,9 @@ export function parseAgentOutput(agent: string, content: string): AgentOutput {
   } catch {
     return { agent, findings: [], summary: "", parseError: true };
   }
-  const findings = (Array.isArray(raw.findings) ? raw.findings : []).slice(0, 12).map((f: Record<string, unknown>, i): Finding => ({
+  // "No findings" must be an explicit empty array; anything else is unreadable, never "clean".
+  if (!raw || typeof raw !== "object" || !Array.isArray(raw.findings)) return { agent, findings: [], summary: "", parseError: true };
+  const findings = (raw.findings as Record<string, unknown>[]).slice(0, 12).map((f: Record<string, unknown>, i): Finding => ({
     id: str(f?.id, 16) || `${agent[0].toUpperCase()}${i + 1}`,
     severity: (SEVERITIES as readonly string[]).includes(f?.severity as string) ? (f.severity as Severity) : "info",
     title: str(f?.title, 200),
