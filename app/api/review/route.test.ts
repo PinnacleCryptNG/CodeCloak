@@ -2,7 +2,7 @@ import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { POST } from "./route";
 import { handleReview } from "@/lib/review/handler";
-import { createRateLimiter } from "@/lib/rate-limit";
+import { createRateLimiter, REVIEW_RATE_LIMIT } from "@/lib/rate-limit";
 
 const KEY = "sk-test-secret-key-never-in-responses";
 let calls: string[] = [];
@@ -94,14 +94,16 @@ test("cross-origin browser requests are rejected before any network call", async
   assert.equal(calls.length, 0);
 });
 
+const sendFrom = (limiter: ReturnType<typeof createRateLimiter>, env: Record<string, string>, headers: Record<string, string>) =>
+  handleReview(
+    new Request("http://localhost/api/review", { method: "POST", headers, body: JSON.stringify({ mode: "demo", sampleId: "vuln-sql" }) }),
+    { rateLimiter: limiter, env: { NEARAI_API_KEY: KEY, ...env } },
+  );
+
 test("per-IP rate limit → 429 with Retry-After, before attestation", async () => {
   attestationResponse = () => new Response("down", { status: 503 });
   const limiter = createRateLimiter({ limit: 2, windowMs: 60_000 });
-  const send = (ip: string) =>
-    handleReview(
-      new Request("http://localhost/api/review", { method: "POST", headers: { "x-forwarded-for": ip }, body: JSON.stringify({ mode: "demo", sampleId: "vuln-sql" }) }),
-      { rateLimiter: limiter },
-    );
+  const send = (ip: string) => sendFrom(limiter, { VERCEL: "1" }, { "x-real-ip": ip });
   assert.equal((await send("203.0.113.7")).status, 403);
   assert.equal((await send("203.0.113.7")).status, 403);
   const limited = await send("203.0.113.7");
@@ -110,4 +112,16 @@ test("per-IP rate limit → 429 with Retry-After, before attestation", async () 
   assert.equal((await limited.json()).error, "rate_limited");
   assert.equal(calls.length, 2);
   assert.equal((await send("203.0.113.8")).status, 403);
+});
+
+test("off Vercel, rotating x-real-ip / X-Forwarded-For does not reset the limit: 9th request → 429", async () => {
+  attestationResponse = () => new Response("down", { status: 503 });
+  const limiter = createRateLimiter(REVIEW_RATE_LIMIT);
+  const statuses: number[] = [];
+  for (let i = 1; i <= 9; i++) {
+    const res = await sendFrom(limiter, {}, { "x-real-ip": `198.51.100.${i}`, "x-vercel-forwarded-for": `192.0.2.${i}`, "x-forwarded-for": `203.0.113.${i}` });
+    statuses.push(res.status);
+  }
+  assert.deepEqual(statuses, [...Array(8).fill(403), 429]);
+  assert.equal(calls.length, 8);
 });
