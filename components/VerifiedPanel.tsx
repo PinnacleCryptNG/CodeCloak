@@ -55,7 +55,7 @@ export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
     <Card as="article" className="anim-rise flex min-w-0 flex-col overflow-hidden">
       <header className="flex flex-col gap-3 px-5 pb-4 pt-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex flex-col gap-1">
-          <h4 className="font-display text-2xl font-semibold leading-none text-ink">Verification receipt</h4>
+          <h4 className="text-2xl font-semibold leading-none text-ink">Verification receipt</h4>
           <p className="text-base text-muted">Checked on the server before your code left it · {new Date(verified.verifiedAt).toLocaleString()}</p>
         </div>
         <Status ok={verified.allSignaturesVerified}>{verified.allSignaturesVerified ? "Attested · every response signed" : "Attested · some responses unverified"}</Status>
