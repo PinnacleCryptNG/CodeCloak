@@ -1,5 +1,6 @@
 import type { VerifiedPayload } from "@/lib/types";
 import { Badge, Card, Mono } from "./ui";
+import { VerifierScope } from "./VerifierScope";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -97,6 +98,7 @@ export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
           ))}
         </ul>
       </details>
+      <VerifierScope />
     </Card>
   );
 }

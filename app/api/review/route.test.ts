@@ -1,6 +1,8 @@
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { POST } from "./route";
+import { handleReview } from "@/lib/review/handler";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 const KEY = "sk-test-secret-key-never-in-responses";
 let calls: string[] = [];
@@ -68,4 +70,44 @@ test("missing API key → 500 server_not_configured, no network", async () => {
   assert.equal(res.status, 500);
   assert.equal((await res.json()).error, "server_not_configured");
   assert.equal(calls.length, 0);
+});
+
+test("errors are sanitised and human-readable: code + fixed message, 80 KB limit stated", async () => {
+  attestationResponse = () => new Response("", { status: 500 });
+  const tooBig = await review({ mode: "paste", code: "SECRET_CODE_MARKER".padEnd(80 * 1024 + 1, "a") });
+  const body = await tooBig.json();
+  assert.equal(body.error, "code_too_large");
+  assert.match(body.message, /80 KB/);
+  assert.equal(body.limit_bytes, 80 * 1024);
+  assert.ok(!JSON.stringify(body).includes("SECRET_CODE_MARKER"));
+  const huge = await POST(new Request("http://localhost/api/review", { method: "POST", body: "x".repeat(200 * 1024) }));
+  assert.match((await huge.json()).message, /80 KB/);
+  assert.equal(calls.length, 0);
+});
+
+test("cross-origin browser requests are rejected before any network call", async () => {
+  const post = (headers: Record<string, string>) =>
+    POST(new Request("http://localhost/api/review", { method: "POST", headers, body: JSON.stringify({ mode: "demo", sampleId: "vuln-sql" }) }));
+  assert.equal((await post({ origin: "https://evil.example", host: "localhost" })).status, 403);
+  assert.equal((await post({ "sec-fetch-site": "cross-site" })).status, 403);
+  assert.equal((await (await post({ origin: "https://evil.example", host: "localhost" })).json()).error, "origin_not_allowed");
+  assert.equal(calls.length, 0);
+});
+
+test("per-IP rate limit → 429 with Retry-After, before attestation", async () => {
+  attestationResponse = () => new Response("down", { status: 503 });
+  const limiter = createRateLimiter({ limit: 2, windowMs: 60_000 });
+  const send = (ip: string) =>
+    handleReview(
+      new Request("http://localhost/api/review", { method: "POST", headers: { "x-forwarded-for": ip }, body: JSON.stringify({ mode: "demo", sampleId: "vuln-sql" }) }),
+      { rateLimiter: limiter },
+    );
+  assert.equal((await send("203.0.113.7")).status, 403);
+  assert.equal((await send("203.0.113.7")).status, 403);
+  const limited = await send("203.0.113.7");
+  assert.equal(limited.status, 429);
+  assert.ok(Number(limited.headers.get("retry-after")) > 0);
+  assert.equal((await limited.json()).error, "rate_limited");
+  assert.equal(calls.length, 2);
+  assert.equal((await send("203.0.113.8")).status, 403);
 });
