@@ -30,17 +30,25 @@ export function createRateLimiter({ limit, windowMs }: { limit: number; windowMs
   };
 }
 
+const SHARED_KEY = "shared";
+const HEADER_NAME = /^[!#$%&'*+.^_`|~0-9a-z-]+$/i;
+
 /**
- * Client IP, hashed. Only headers a proxy sets are trusted: Vercel's `x-vercel-forwarded-for` / `x-real-ip`
- * (Vercel overwrites both), else the LAST X-Forwarded-For hop (appended by the nearest proxy). The first hop is
- * client-controlled, so rotating it must not reset the quota. With no proxy (local dev) every request shares one key.
+ * Client IP, hashed. The IP source is explicit because any header a client sends reaches us unchanged unless a
+ * proxy overwrites it (Next.js keeps a client-sent X-Forwarded-For):
+ * - On Vercel (`VERCEL=1`), `x-vercel-forwarded-for` / `x-real-ip`, which Vercel's edge overwrites.
+ * - Elsewhere, only `TRUSTED_PROXY_IP_HEADER`, a header your proxy overwrites or appends to; the LAST
+ *   comma-separated value is used (the hop added by the nearest proxy).
+ * - Otherwise every request shares one key (fail closed: the limit becomes global, never bypassable).
  */
-export function clientKey(request: Request): string {
+export function clientKey(request: Request, env: Record<string, string | undefined> = process.env): string {
   const h = request.headers;
-  const ip =
-    h.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
-    h.get("x-real-ip")?.trim() ||
-    h.get("x-forwarded-for")?.split(",").at(-1)?.trim() ||
-    "unknown";
-  return createHash("sha256").update(ip).digest("hex").slice(0, 32);
+  let ip: string | undefined;
+  if (env.VERCEL === "1") {
+    ip = h.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip")?.trim();
+  } else {
+    const name = env.TRUSTED_PROXY_IP_HEADER?.trim();
+    if (name && HEADER_NAME.test(name)) ip = h.get(name)?.split(",").at(-1)?.trim();
+  }
+  return createHash("sha256").update(ip || SHARED_KEY).digest("hex").slice(0, 32);
 }

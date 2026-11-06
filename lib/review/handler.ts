@@ -143,7 +143,7 @@ async function review(request: Request, deps: ReviewDeps): Promise<Response> {
   const input = parseInput(body);
   if (!input.ok) return safeError(input.code, input.code === "code_too_large" ? { limit_bytes: MAX_CODE_BYTES } : {});
 
-  const limited = (deps.rateLimiter ?? defaultLimiter).take(clientKey(request));
+  const limited = (deps.rateLimiter ?? defaultLimiter).take(clientKey(request, env));
   if (!limited.ok) return safeError("rate_limited", { retry_after_s: limited.retryAfterS });
 
   const model = resolveModel(env);

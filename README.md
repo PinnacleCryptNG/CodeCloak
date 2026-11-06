@@ -65,12 +65,13 @@ Other checks: `npm test` (all unit tests), `npm run lint`, `npm run build`.
 | `NEARAI_CLOUD_API_KEY` | no | — | Accepted as a fallback name for the key. |
 | `NEARAI_MODEL` | no | `Qwen/Qwen3.8-27B` | Model to attest and run. `z-ai/glm-5.3-flash` also passes attestation. Use NEAR TEE models only. |
 | `CODECLOAK_TRUSTED_MEASUREMENTS` | no | built-in (`lib/near-ai/measurements.ts`) | JSON allowlist of enclave measurements; replaces the defaults. When NEAR ships new images, reviews fail closed until you run `npm run measurements`, review the output and set it here. |
+| `TRUSTED_PROXY_IP_HEADER` | no | — | Off Vercel only: the client-IP header your reverse proxy overwrites or appends to (e.g. `X-Forwarded-For`, last hop used). Unset means one shared rate-limit bucket for all clients. |
 
 ## Zero retention and abuse limits
 
 - Code exists only in the memory of one request. There is no database, no disk writes and no analytics, and request or response bodies are never logged. Every error is a fixed code and message produced by `safeError()` (`lib/errors.ts`).
 - Paste is capped at 80 KB, request bodies at 100 KB, and each review at 7 model calls with capped `max_tokens`.
-- Cross-origin browser requests are rejected. Each IP gets 8 reviews per 10 minutes; this limit is kept in memory per server instance.
+- Cross-origin browser requests are rejected. Each IP gets 8 reviews per 10 minutes; this limit is kept in memory per server instance. The IP comes only from headers a proxy controls: Vercel's edge headers when `VERCEL=1`, otherwise the header named in `TRUSTED_PROXY_IP_HEADER` (your proxy must overwrite it). With neither, all clients share one 8-per-10-minute bucket, so spoofed IP headers cannot bypass the limit.
 
 ## Project layout
 
