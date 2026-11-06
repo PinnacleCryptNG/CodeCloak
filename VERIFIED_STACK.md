@@ -18,3 +18,12 @@ signature_kind: provider_tee (model TEE) or gateway. Prefer non-streaming.
 SDK option: @nearai/inference-sdk needs Node 24.22.1+ (https://docs.near.ai/cloud/inference-sdk/javascript); else port example helpers (Node 22+).
 
 Unverified: TDX field names beyond example/SDK; every model attestable; provider=near required for all models.
+
+## Added 2026-11-06 (checked live against docs.near.ai and nearai/nearai-cloud-verifier)
+- Attestation response: `gateway_attestation` (gateway) and `model_attestations[]` (NEAR model reports, only with provider=near). Reject missing/empty `model_attestations[]`.
+- Report fields: `intel_quote`, `event_log`, `request_nonce`, `signing_address`, `signing_algo`, `nvidia_payload`, `info.tcb_info.app_compose`. `report_data` is not returned in model reports — read it from the verified quote.
+- Quote check: dcap-qvl. TS verifier https://github.com/nearai/nearai-cloud-verifier (`ts/model_verifier.ts`, Apache-2.0) uses `@phala/dcap-qvl-node` (`js_get_collateral` from https://api.trustedservices.intel.com/tdx/certification/v4, then `js_verify`).
+- MRCONFIGID = `01` + SHA-256(raw app_compose) + 15 zero bytes. RTMR3 = replay of `event_log`.
+- Signature (ecdsa): recover EIP-191 signer from `text` + `signature`, compare to `signing_address`. `provider_tee` text = `<MODEL_ID>:<sha256(request bytes)>:<sha256(response bytes)>`; `gateway` text = `<sha256(request bytes)>:<sha256(response bytes)>`. Signer must match a report verified BEFORE the completion.
+- Streaming makes the gateway sign instead of the model → non-streaming only. Use Accept-Encoding: identity (or hash after decompression).
+- /v1/models: `Qwen/Qwen3.8-27B` lists `datacenters`; `z-ai/glm-5.3-flash` does not (SDK docs still call it a NEAR TEE model) — confirm its model report at runtime.
