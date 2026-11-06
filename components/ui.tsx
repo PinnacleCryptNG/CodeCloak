@@ -71,13 +71,13 @@ export function Mono({ children, className = "" }: { children: ReactNode; classN
 }
 
 /** Half-circle gauge; value 0–100, or null for "no value". */
-export function Gauge({ value, label }: { value: number | null; label: string }) {
+export function Gauge({ value, label, className = "w-44", numberClass = "text-[2.6rem]" }: { value: number | null; label: string; className?: string; numberClass?: string }) {
   const v = value ?? 0;
   const r = 52;
   const len = Math.PI * r;
   const color = value === null ? "var(--line)" : v >= 75 ? "var(--ok)" : v >= 50 ? "var(--warn)" : "var(--coral)";
   return (
-    <div className="relative w-44 shrink-0" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v}>
+    <div className={`relative shrink-0 ${className}`} role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v}>
       <svg viewBox="0 0 128 72" className="w-full" aria-hidden>
         <path d="M12 66a52 52 0 0 1 104 0" fill="none" stroke="var(--paper-2)" strokeWidth="11" strokeLinecap="round" />
         <path
@@ -91,7 +91,7 @@ export function Gauge({ value, label }: { value: number | null; label: string })
           style={{ transition: "stroke-dashoffset 1s ease-out" }}
         />
       </svg>
-      <span className="font-display absolute inset-x-0 bottom-0 text-center text-[2.6rem] font-semibold leading-none tabular-nums text-ink">
+      <span className={`font-display absolute inset-x-0 bottom-0 text-center font-semibold leading-none tabular-nums text-ink ${numberClass}`}>
         {value === null ? "—" : value}
       </span>
     </div>

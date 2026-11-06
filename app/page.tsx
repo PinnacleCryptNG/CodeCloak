@@ -1,5 +1,5 @@
 import { REPO, Footer, Nav } from "@/components/Chrome";
-import { HeroScene } from "@/components/HeroScene";
+import { HeroDemo } from "@/components/HeroDemo";
 import { ReviewApp, type SampleView } from "@/components/ReviewApp";
 import { NOT_VERIFIED } from "@/components/VerifierScope";
 import { AGENT_META } from "@/components/agents";
@@ -70,7 +70,7 @@ export default function Home() {
               </ButtonLink>
             </div>
           </div>
-          <HeroScene />
+          <HeroDemo />
         </header>
 
         <section aria-labelledby="strip" className="-mt-12 flex flex-col gap-4 sm:-mt-20">

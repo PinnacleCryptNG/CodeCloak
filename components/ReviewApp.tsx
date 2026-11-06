@@ -235,7 +235,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
                   </span>
                 )}
               </button>
-              <p className="text-center text-base text-muted">About a minute · 7 attested, signed model calls</p>
+              <p className="text-center text-base text-muted">About a minute · up to 7 attested, signed model calls</p>
             </div>
           </div>
 
