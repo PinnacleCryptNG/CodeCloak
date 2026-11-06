@@ -30,8 +30,17 @@ export function createRateLimiter({ limit, windowMs }: { limit: number; windowMs
   };
 }
 
-/** First X-Forwarded-For hop (set by Vercel), else X-Real-IP, hashed. */
+/**
+ * Client IP, hashed. Only headers a proxy sets are trusted: Vercel's `x-vercel-forwarded-for` / `x-real-ip`
+ * (Vercel overwrites both), else the LAST X-Forwarded-For hop (appended by the nearest proxy). The first hop is
+ * client-controlled, so rotating it must not reset the quota. With no proxy (local dev) every request shares one key.
+ */
 export function clientKey(request: Request): string {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "unknown";
+  const h = request.headers;
+  const ip =
+    h.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
+    h.get("x-real-ip")?.trim() ||
+    h.get("x-forwarded-for")?.split(",").at(-1)?.trim() ||
+    "unknown";
   return createHash("sha256").update(ip).digest("hex").slice(0, 32);
 }
