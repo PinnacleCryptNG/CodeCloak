@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, test } from "node:test";
+import { Wallet } from "ethers";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { NVIDIA_ISSUER, NVIDIA_NRAS_URL, type RawReport } from "../lib/near-ai/attestation";
 import { expectedMrConfigId, replayRtmr3, type VerifiedQuote } from "../lib/near-ai/tdx";
@@ -21,8 +22,10 @@ const KEY = "sk-failclosed-test-key";
 const ENV = { NEARAI_API_KEY: KEY };
 const SENTINEL = "FAILCLOSED_SENTINEL_7f3a";
 const CODE = `export const token = "${SENTINEL}"; // fictional`;
-const GATEWAY_ADDR = "0x" + "11".repeat(20);
-const MODEL_ADDR = "0x" + "22".repeat(20);
+const gatewayWallet = Wallet.createRandom();
+const modelWallet = Wallet.createRandom();
+const GATEWAY_ADDR = gatewayWallet.address.toLowerCase();
+const MODEL_ADDR = modelWallet.address.toLowerCase();
 const APP_COMPOSE = '{"docker_compose_file":"services: {}"}';
 
 function runtimeEvent(event: string, payloadHex: string) {
@@ -50,6 +53,8 @@ type Scenario = {
   quote?: Partial<VerifiedQuote>;
   quoteThrows?: boolean;
   gpuVerdict?: boolean;
+  /** Answer completions and sign each one with this kind's attested key (gateway or model report). */
+  signAs?: "provider_tee" | "gateway";
 };
 
 let logs: string[] = [];
@@ -66,7 +71,9 @@ async function harness(s: Scenario) {
   let nonce = "";
   const { publicKey, privateKey } = await generateKeyPair("ES384");
   const jwk = { ...(await exportJWK(publicKey)), kid: "test", alg: "ES384" };
-  const fetchMock = (async (input: string | URL | Request) => {
+  const signed = new Map<string, string>();
+  let completionId = 0;
+  const fetchMock = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     urls.push(url);
     if (url.startsWith(NVIDIA_NRAS_URL)) {
@@ -88,6 +95,19 @@ async function harness(s: Scenario) {
       };
       s.mutate?.(body);
       return Response.json(body);
+    }
+    if (s.signAs && url.endsWith("/chat/completions")) {
+      const id = `chat-${++completionId}`;
+      const responseText = JSON.stringify({ id, model: MODEL, choices: [{ message: { content: '{"findings":[],"summary":"clean","votes":[],"consensus":[],"disagreements":[]}' } }] });
+      const sha = (t: string) => createHash("sha256").update(t).digest("hex");
+      const hashes = `${sha(String(init?.body))}:${sha(responseText)}`;
+      signed.set(id, s.signAs === "provider_tee" ? `${MODEL}:${hashes}` : hashes);
+      return new Response(responseText, { status: 200 });
+    }
+    if (s.signAs && url.includes("/signature/")) {
+      const text = signed.get(decodeURIComponent(url.split("/signature/")[1].split("?")[0]))!;
+      const wallet = s.signAs === "provider_tee" ? modelWallet : gatewayWallet;
+      return Response.json({ text, signature: await wallet.signMessage(text), signing_address: wallet.address, signing_algo: "ecdsa", signature_kind: s.signAs });
     }
     // Completions / signatures: only the positive control may ever get here.
     return Response.json({ error: { message: `echo ${SENTINEL}`, type: "no_limit_configured" } }, { status: 402 });
@@ -162,6 +182,33 @@ test("positive control: a passing attestation does reach completions (harness se
   assert.ok(modelCalls(urls).length >= 3);
   assert.ok(!text.includes(SENTINEL) && !text.includes(KEY), "upstream text and code never echoed");
   assert.ok(!logs.join("\n").includes(SENTINEL));
+});
+
+async function signedReview(signAs: "provider_tee" | "gateway") {
+  const { deps, urls } = await harness({ signAs });
+  const res = await handleReview(new Request("http://localhost/api/review", { method: "POST", body: JSON.stringify({ mode: "paste", code: CODE }) }), deps);
+  const text = await res.text();
+  assert.equal(res.status, 200, text);
+  assert.ok(urls.some((u) => u.includes("/signature/")));
+  return JSON.parse(text).verified as { allSignaturesVerified: boolean; completions: { signature?: { status: string; reason: string; signatureKind: string } }[] };
+}
+
+test("model-enclave (provider_tee) signatures from the attested model key → every response signed", async () => {
+  const verified = await signedReview("provider_tee");
+  assert.ok(verified.completions.length >= 3);
+  assert.ok(verified.completions.every((c) => c.signature?.status === "verified"));
+  assert.equal(verified.allSignaturesVerified, true);
+});
+
+test("valid gateway-only signatures from the attested gateway key never count as every response signed", async () => {
+  const verified = await signedReview("gateway");
+  assert.ok(verified.completions.length >= 3);
+  for (const c of verified.completions) {
+    assert.equal(c.signature?.signatureKind, "gateway");
+    assert.equal(c.signature?.status, "unverified");
+    assert.equal(c.signature?.reason, "gateway_signed_only");
+  }
+  assert.equal(verified.allSignaturesVerified, false);
 });
 
 test("no console logging in server or UI source", () => {

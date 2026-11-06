@@ -27,7 +27,7 @@ C. Fail-closed attestation (hard requirement), before any code leaves the server
    a. Keep the exact request-body bytes sent and exact response-body bytes received before parsing; request_hash = SHA-256(request bytes), response_hash = SHA-256(response bytes).
    b. GET /v1/signature/{chatId}?model=...&signing_algo=ecdsa (bounded retry on 404; a 2xx with `error_code` = unavailable).
    c. Recover the EIP-191 signer from `text` + `signature`; it must equal `signing_address`.
-   d. `provider_tee`: `text` must equal `<MODEL_ID>:<request_hash>:<response_hash>` and the signer must match exactly one report verified in step 3 (a report fetched after the completion does not count). `gateway`: `text` must equal `<request_hash>:<response_hash>` and match the verified gateway report.
+   d. `provider_tee`: `text` must equal `<MODEL_ID>:<request_hash>:<response_hash>` and the signer must match exactly one report verified in step 3 (a report fetched after the completion does not count). `gateway`: `text` must equal `<request_hash>:<response_hash>` and match the verified gateway report, but it is still shown as unverified (`gateway_signed_only`) because no model enclave signed it; `allSignaturesVerified` requires every completion to be a verified `provider_tee` signature.
    e. Any failure or unavailable signature → that agent's result is marked "Unverified" (red) in the panel. Never a green badge.
 6. Verified panel: model actually used, nonce, signature_kind, signer match, TDX quote status, RTMR3/MRCONFIGID checks, NVIDIA result (if run), request/response hashes, timestamp. Never show keys.
 

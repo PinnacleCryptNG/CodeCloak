@@ -169,7 +169,7 @@ async function review(request: Request, deps: ReviewDeps): Promise<Response> {
       verified: {
         ...publicAttestation(attestation),
         completions: swarm.completions,
-        allSignaturesVerified: swarm.completions.every((c) => c.signature?.status === "verified"),
+        allSignaturesVerified: swarm.completions.every((c) => c.signature?.status === "verified" && c.signature.signatureKind === "provider_tee"),
         reviewedSha256,
       },
     };
