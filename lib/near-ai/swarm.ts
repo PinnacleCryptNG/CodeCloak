@@ -87,15 +87,18 @@ export function parseChallengeOutput(agent: string, content: string, allowedIds:
 
 export function parseModeratorOutput(content: string): ModeratorOutput {
   const raw = extractJson(content);
-  if (!raw) return { agent: "moderator", consensus: [], disagreements: [], confidence: 0, summary: "", parseError: true };
+  // A ruling must carry both required arrays; anything else is unreadable, not an empty ruling.
+  if (!raw || !Array.isArray(raw.consensus) || !Array.isArray(raw.disagreements)) {
+    return { agent: "moderator", consensus: [], disagreements: [], confidence: 0, summary: "", parseError: true };
+  }
   const sev = (v: unknown): Severity => ((SEVERITIES as readonly string[]).includes(v as string) ? (v as Severity) : "info");
-  const consensus = (Array.isArray(raw.consensus) ? raw.consensus : []).slice(0, 16).map((c: Record<string, unknown>) => ({
+  const consensus = (raw.consensus as Record<string, unknown>[]).slice(0, 16).map((c: Record<string, unknown>) => ({
     severity: sev(c?.severity),
     title: str(c?.title, 200),
     agreed_by: (Array.isArray(c?.agreed_by) ? c.agreed_by : []).filter((a): a is string => typeof a === "string").slice(0, 3),
     detail: str(c?.detail, 1200),
   }));
-  const disagreements = (Array.isArray(raw.disagreements) ? raw.disagreements : []).slice(0, 16).map((d: Record<string, unknown>) => {
+  const disagreements = (raw.disagreements as Record<string, unknown>[]).slice(0, 16).map((d: Record<string, unknown>) => {
     const positions: Record<string, string> = {};
     if (d?.positions && typeof d.positions === "object") {
       for (const [k, v] of Object.entries(d.positions as Record<string, unknown>).slice(0, 4)) positions[k.slice(0, 32)] = str(v, 400);
