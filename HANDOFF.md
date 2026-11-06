@@ -39,3 +39,4 @@ Prompts 01–08 in order: scaffold, samples, attestation, single review, swarm, 
 
 ## Session log
 - 2026-11-06 · Prompt 00 (docs) · Created HANDOFF/SPEC/VERIFIED_STACK as given, then applied Pinnacle-approved fixes: `security` track, challenge round, full TDX quote check ported from nearai-cloud-verifier, exact-bytes signature binding, fallback-model eligibility, prompt-injection sample, abuse limits, no-log rule · Blockers: none
+- 2026-11-06 · Prompt 01 (scaffold) · Next.js 16.4.5 App Router + TS + Tailwind v4, MIT LICENSE, stub README, placeholder home page; engines node >=22; `npm install && npm run build` passes with no API key; `/` checked at 390px · Blockers: none (npm audit: moderate advisories in dev-only lint deps via eslint-config-next)
