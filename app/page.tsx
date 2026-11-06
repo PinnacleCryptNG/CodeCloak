@@ -308,7 +308,7 @@ export default function Home() {
             <p className="font-display text-[1.9rem] leading-tight tracking-tight">
               Run it yourself. <span className="italic text-coral-deep">One key.</span>
             </p>
-            <div className="overflow-hidden rounded-2xl bg-night text-paper">
+            <div className="on-night overflow-hidden rounded-2xl bg-night text-paper">
               <div className="flex items-center gap-2 border-b border-night-line px-4 py-3">
                 {[0, 1, 2].map((d) => (
                   <span key={d} aria-hidden className="h-2.5 w-2.5 rounded-full bg-night-line" />
