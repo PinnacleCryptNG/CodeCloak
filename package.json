@@ -7,10 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test 'lib/**/*.test.ts'"
+    "test": "tsx --test 'lib/**/*.test.ts' 'app/**/*.test.ts' 'scripts/**/*.test.ts'",
+    "test:failclosed": "tsx --test scripts/failclosed.test.ts"
   },
   "dependencies": {
     "@phala/dcap-qvl-node": "^0.3.3",
+    "ethers": "^6.17.0",
     "jose": "^6.2.15",
     "next": "16.4.5",
     "react": "19.3.0",
