@@ -100,3 +100,16 @@ test("parseAgentOutput: tolerates think blocks/fences, validates fields, never t
   assert.equal(out.summary, "s");
   assert.equal(parseAgentOutput("security", "not json").parseError, true);
 });
+
+test("chatCompletion: 200 with JSON null or non-object choices → completion_malformed", async () => {
+  for (const body of ["null", "[]", '{"id":"x","choices":"nope"}', '{"id":"x","choices":[null]}']) {
+    const fetchStub = (async () => new Response(body, { status: 200 })) as unknown as typeof fetch;
+    await assert.rejects(chatCompletion(MODEL, [{ role: "user", content: "x" }], 10, { fetch: fetchStub, env }), { code: "completion_malformed" });
+  }
+});
+
+test("parseAgentOutput: non-array findings is a parse error, not a clean review", () => {
+  assert.equal(parseAgentOutput("security", '{"findings":"SQL injection","summary":"x"}').parseError, true);
+  assert.equal(parseAgentOutput("security", "null").parseError, true);
+  assert.equal(parseAgentOutput("security", '{"findings":[],"summary":"clean"}').parseError, undefined);
+});

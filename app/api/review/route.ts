@@ -30,22 +30,56 @@ const MAX_BODY_BYTES = 100 * 1024;
 const error = (status: number, code: string, extra: Record<string, unknown> = {}) =>
   Response.json({ error: code, ...extra }, { status, headers: { "Cache-Control": "no-store" } });
 
-type Input = { ok: true; files: ReviewFile[] } | { ok: false; status: number; code: string };
+type Input = { ok: true; mode: "demo" | "paste"; files: ReviewFile[] } | { ok: false; status: number; code: string };
 
 function parseInput(body: unknown): Input {
   if (!body || typeof body !== "object") return { ok: false, status: 400, code: "invalid_request" };
   const { mode, sampleId, code } = body as Record<string, unknown>;
   if (mode === "demo") {
     if (!isSampleId(sampleId)) return { ok: false, status: 400, code: "unknown_sample" };
-    return { ok: true, files: loadSample(sampleId).files };
+    return { ok: true, mode, files: loadSample(sampleId).files };
   }
   if (mode === "paste") {
     if (typeof code !== "string" || code.trim() === "") return { ok: false, status: 400, code: "code_required" };
     if (Buffer.byteLength(code, "utf8") > MAX_CODE_BYTES) return { ok: false, status: 413, code: "code_too_large" };
     if (code.includes("\u0000")) return { ok: false, status: 415, code: "binary_not_supported" };
-    return { ok: true, files: [{ name: "pasted", content: code }] };
+    return { ok: true, mode, files: [{ name: "pasted", content: code }] };
   }
   return { ok: false, status: 400, code: "invalid_mode" };
+}
+
+/** Reads at most `max` bytes; stops (returns null) as soon as the body is larger, so oversized uploads never sit in memory. */
+async function readCapped(request: Request, max: number): Promise<string | null> {
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  if (declared > max) return null;
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > max) {
+        await reader.cancel().catch(() => {});
+        return null;
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return "";
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+/**
+ * SHA-256 of the reviewed text. Paste: SHA-256 of exactly the pasted code. Demo: SHA-256 of each file as
+ * `<name>\n<content>`, joined with "\n", in sample order.
+ */
+function reviewedDigest(files: ReviewFile[], mode: "demo" | "paste"): string {
+  const text = mode === "paste" ? files[0].content : files.map((f) => `${f.name}\n${f.content}`).join("\n");
+  return createHash("sha256").update(text).digest("hex");
 }
 
 function publicAttestation(a: VerifiedAttestation): Omit<VerifiedPayload, "completions" | "allSignaturesVerified" | "reviewedSha256"> {
@@ -71,8 +105,8 @@ export async function POST(request: Request): Promise<Response> {
   const env = process.env;
   if (!env.NEARAI_API_KEY && !env.NEARAI_CLOUD_API_KEY) return error(500, "server_not_configured");
 
-  const text = await request.text().catch(() => "");
-  if (Buffer.byteLength(text, "utf8") > MAX_BODY_BYTES) return error(413, "body_too_large");
+  const text = await readCapped(request, MAX_BODY_BYTES);
+  if (text === null) return error(413, "body_too_large");
   let body: unknown;
   try {
     body = JSON.parse(text);
@@ -94,9 +128,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // 2. Only now send the (delimited, untrusted) code to the attested model(s).
-  const reviewedSha256 = createHash("sha256")
-    .update(input.files.map((f) => `${f.name}\n${f.content}`).join("\n"))
-    .digest("hex");
+  const reviewedSha256 = reviewedDigest(input.files, input.mode);
   const swarm = await runSwarm(input.files, model, attestation);
   if (swarm.completions.filter((c) => c.round === "audit").every((c) => c.error)) {
     return error(502, swarm.completions[0]?.error ?? "completion_failed");
