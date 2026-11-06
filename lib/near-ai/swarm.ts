@@ -67,16 +67,17 @@ async function callAgent(
 
 export function parseChallengeOutput(agent: string, content: string, allowedIds: Set<string>): ChallengeOutput {
   const raw = extractJson(content);
-  if (!raw) return { agent, votes: [], parseError: true };
-  const votes = (Array.isArray(raw.votes) ? raw.votes : [])
-    .map((v: Record<string, unknown>): ChallengeVote => ({
-      finding_id: str(v?.finding_id, 16),
-      stance: v?.stance === "dispute" ? "dispute" : "back",
-      reason: str(v?.reason, 400),
-    }))
-    .filter((v) => allowedIds.has(v.finding_id))
-    .slice(0, 24);
-  return { agent, votes };
+  if (!raw) return { agent, votes: [], parseError: true, missing: [...allowedIds] };
+  const votes: ChallengeVote[] = [];
+  for (const v of (Array.isArray(raw.votes) ? raw.votes : []) as Record<string, unknown>[]) {
+    const finding_id = str(v?.finding_id, 16);
+    // Only exact stances count; an unreadable stance is never treated as agreement.
+    if (!allowedIds.has(finding_id) || (v?.stance !== "back" && v?.stance !== "dispute")) continue;
+    if (votes.some((x) => x.finding_id === finding_id)) continue;
+    votes.push({ finding_id, stance: v.stance, reason: str(v?.reason, 400) });
+  }
+  const missing = [...allowedIds].filter((id) => !votes.some((v) => v.finding_id === id));
+  return missing.length ? { agent, votes, missing } : { agent, votes };
 }
 
 export function parseModeratorOutput(content: string): ModeratorOutput {
@@ -110,16 +111,18 @@ export function contestedFindings(audits: AgentOutput[], challenges: ChallengeOu
       if (!votes.some((v) => v.stance === "dispute")) continue;
       const positions: Record<string, string> = { [audit.agent]: `raised (${f.severity}): ${f.detail}`.slice(0, 400) };
       for (const v of votes) positions[v.agent] = `${v.stance}: ${v.reason}`.slice(0, 400);
+      for (const c of challenges) if (c.missing?.includes(f.id)) positions[c.agent] = "no valid vote (abstained or unreadable)";
       out.push({ topic: `${f.id}: ${f.title}`.slice(0, 300), positions });
     }
   }
   return out;
 }
 
-/** Keep the moderator's disagreements, then add any contested finding it left out (matched by id prefix). */
+/** Keep the moderator's disagreements, then add any contested finding it left out (matched by the leading "ID:" of each topic). */
 export function mergeDisagreements(moderator: Disagreement[], contested: Disagreement[]): Disagreement[] {
-  const covered = (id: string) => moderator.some((d) => new RegExp(`(^|\\W)${id}(\\W|$)`).test(d.topic));
-  return [...moderator, ...contested.filter((c) => !covered(c.topic.split(":")[0]))];
+  const leadingId = (topic: string) => /^\s*([A-Za-z]\d{1,3})\s*:/.exec(topic)?.[1].toUpperCase();
+  const covered = new Set(moderator.map((d) => leadingId(d.topic)).filter(Boolean));
+  return [...moderator, ...contested.filter((c) => !covered.has(leadingId(c.topic)))];
 }
 
 export async function runSwarm(
