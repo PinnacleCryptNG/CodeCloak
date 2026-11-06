@@ -1,9 +1,9 @@
 export type Phase = "idle" | "verifying" | "auditors" | "challenge" | "moderator" | "done" | "error";
 
 const STEPS = [
-  { key: "verifying", label: "Verifying enclave…" },
-  { key: "auditors", label: "Auditors running…" },
-  { key: "moderator", label: "Moderator reconciling…" },
+  { key: "verifying", label: "Verifying enclave…", detail: "Intel TDX, NVIDIA GPU, fresh nonce" },
+  { key: "auditors", label: "Auditors running…", detail: "Three lenses in parallel, then the challenge round" },
+  { key: "moderator", label: "Moderator reconciling…", detail: "Ruling, disagreements, signature checks" },
 ] as const;
 
 function stepIndex(phase: Phase): number {
@@ -13,33 +13,37 @@ function stepIndex(phase: Phase): number {
   return phase === "done" ? 3 : -1;
 }
 
-export function Steps({ phase }: { phase: Phase }) {
+export function Steps({ phase, elapsed, subject }: { phase: Phase; elapsed?: number; subject?: string }) {
   const current = stepIndex(phase);
   return (
-    <ol className="flex flex-col gap-2 sm:flex-row sm:gap-4" aria-live="polite">
-      {STEPS.map((step, i) => {
-        const state = i < current ? "done" : i === current ? "active" : "pending";
-        return (
-          <li key={step.key} className="flex items-center gap-2.5 text-base">
-            <span
-              aria-hidden
-              className={`flex h-6 w-6 items-center justify-center rounded-full text-base ${
-                state === "done"
-                  ? "bg-emerald-500/20 text-emerald-300"
-                  : state === "active"
-                    ? "bg-white/15 text-white"
-                    : "bg-white/5 text-white/30"
-              }`}
-            >
-              {state === "done" ? "✓" : state === "active" ? <span className="h-2 w-2 animate-pulse rounded-full bg-white" /> : i + 1}
-            </span>
-            <span className={state === "pending" ? "text-white/40" : "text-white"}>
-              {step.label}
-              {i === 1 && phase === "challenge" ? <span className="text-white/50"> challenge round</span> : null}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+    <div className="flex flex-col gap-5" aria-live="polite">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="font-display text-2xl font-semibold text-ink">
+          {phase === "done" ? "Review complete" : "Reviewing privately"}
+          {subject ? <span className="font-mono text-lg font-normal text-muted"> · {subject}</span> : null}
+        </p>
+        {elapsed !== undefined ? <span className="font-mono text-lg tabular-nums text-ink-2">{(elapsed / 1000).toFixed(1)}s</span> : null}
+      </div>
+      <ol className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {STEPS.map((step, i) => {
+          const state = i < current ? "done" : i === current ? "active" : "pending";
+          return (
+            <li key={step.key} className="flex flex-col gap-3">
+              <span className="relative h-1.5 overflow-hidden rounded-full bg-paper-2">
+                <span className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ${state === "pending" ? "w-0" : "w-full"} ${state === "done" ? "bg-ink" : "anim-pulse bg-coral"}`} />
+              </span>
+              <span className="flex flex-col">
+                <span className={`flex items-center gap-2 font-semibold ${state === "pending" ? "text-muted" : "text-ink"}`}>
+                  {state === "done" ? <span aria-hidden className="text-ok">✓</span> : state === "active" ? <span aria-hidden className="anim-pulse h-2 w-2 rounded-full bg-coral" /> : null}
+                  {step.label}
+                  {i === 1 && phase === "challenge" ? <span className="font-normal text-coral-deep">challenge round</span> : null}
+                </span>
+                <span className="text-base text-muted">{step.detail}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
