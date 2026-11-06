@@ -6,7 +6,7 @@ import { AgentCard, type ReceivedVote } from "./AgentCard";
 import { CodeView } from "./CodeView";
 import { ConsensusPanel } from "./ConsensusPanel";
 import { Steps, type Phase } from "./Steps";
-import { Card, Eyebrow, Gauge, RichText, SectionHead, Status } from "./ui";
+import { Card, Gauge, RichText, SectionHead, Status } from "./ui";
 import { VerifiedPanel } from "./VerifiedPanel";
 
 export type SampleView = { id: string; title: string; tag: string; blurb: string; files: { name: string; content: string }[] };
@@ -24,11 +24,10 @@ const ERROR_TEXT: Record<string, string> = {
   stream_incomplete: "The review stopped before a result arrived. Nothing was stored; try again.",
 };
 
-function ResultHead({ eyebrow, title, aside }: { eyebrow: string; title: React.ReactNode; aside?: React.ReactNode }) {
+function ResultHead({ title, aside }: { title: React.ReactNode; aside?: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="flex flex-col gap-2">
-        <Eyebrow>{eyebrow}</Eyebrow>
         <h3 className="headline text-[2rem] sm:text-[2.6rem]">{title}</h3>
       </div>
       {aside}
@@ -146,7 +145,6 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
       <section className="flex flex-col gap-10">
         <SectionHead
           id="review"
-          eyebrow="Live demo"
           title={
             <>
               Try it on a <span className="tone">planted bug.</span>
@@ -257,7 +255,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
                   spellCheck={false}
                   rows={16}
                   placeholder="// Paste code here"
-                  className="code-scroll h-full min-h-[22rem] w-full resize-none rounded-2xl bg-ink p-5 font-mono text-base leading-7 text-[#e9e1d4] placeholder:text-[#7d7467] focus:outline-none focus:ring-2 focus:ring-coral/60 lg:min-h-0"
+                  className="code-scroll h-full min-h-[22rem] w-full resize-none rounded-2xl bg-code p-5 font-mono text-base leading-7 text-[#e9e1d4] placeholder:text-[#7d7467] focus:outline-none focus:ring-2 focus:ring-coral/60 lg:min-h-0"
                 />
               </>
             )}
@@ -272,13 +270,13 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
         ) : null}
 
         {failure ? (
-          <div role="alert" className="anim-rise flex gap-4 rounded-[1.25rem] border border-[#efc3bb] bg-[#fbe6e2] p-5 sm:p-6">
-            <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bad text-lg text-white">
+          <div role="alert" className="anim-rise flex gap-4 rounded-[1.25rem] border border-bad-line bg-bad-soft p-5 sm:p-6">
+            <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bad text-lg text-paper">
               ✗
             </span>
             <div className="min-w-0">
-              <p className="font-semibold text-[#7d1d10]">{ERROR_TEXT[failure.error] ?? failure.message ?? `Review failed (${failure.error}).`}</p>
-              {failure.error === "attestation_failed" ? <p className="mt-1 text-base text-[#7d1d10]/80">Fail-closed: no model call was made.</p> : null}
+              <p className="font-semibold text-bad-fg">{ERROR_TEXT[failure.error] ?? failure.message ?? `Review failed (${failure.error}).`}</p>
+              {failure.error === "attestation_failed" ? <p className="mt-1 text-base text-bad-fg/80">Fail-closed: no model call was made.</p> : null}
               {failure.checks?.length ? (
                 <ul className="mt-3 flex flex-col gap-1">
                   {failure.checks.map((c, i) => (
@@ -301,8 +299,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
         <div ref={resultsRef} className="flex scroll-mt-28 flex-col gap-14">
           <section className="flex flex-col gap-6">
             <ResultHead
-              eyebrow="Result"
-              title="The verdict"
+              title={<>The <span className="tone">verdict.</span></>}
               aside={<Status ok={result.verified.allSignaturesVerified}>{signed}/{result.verified.completions.length} responses signed</Status>}
             />
             <Card className="anim-rise flex min-w-0 flex-col overflow-hidden">
@@ -338,14 +335,14 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
           </section>
 
           <section className="flex flex-col gap-6">
-            <ResultHead eyebrow="Rounds 1 & 2" title={<>Each auditor&apos;s <span className="tone">findings.</span></>} aside={<span className="text-base text-muted">Tap a finding to see the votes</span>} />
+            <ResultHead title={<>Each auditor&apos;s <span className="tone">findings.</span></>} aside={<span className="text-base text-muted">Tap a finding to see the votes</span>} />
             <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
               {AUDITORS.map((a) => (
                 <AgentCard key={a} name={a} output={result.agents[a]} record={recordFor(a, "audit")} votes={votesByFinding} />
               ))}
             </div>
             {result.challenges.some((c) => c.parseError || c.missing?.length) ? (
-              <div role="status" className="rounded-2xl border border-[#ecd3a6] bg-[#fbefd9] p-5 text-base text-[#6e4300]">
+              <div role="status" className="rounded-2xl border border-warn-line bg-warn-soft p-5 text-base text-warn-fg">
                 <p className="font-semibold">Challenge round incomplete</p>
                 <ul className="mt-2 flex flex-col gap-1">
                   {result.challenges
@@ -361,12 +358,12 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
           </section>
 
           <section className="flex flex-col gap-6">
-            <ResultHead eyebrow="Round 3" title={<>What the moderator <span className="tone">ruled.</span></>} />
+            <ResultHead title={<>What the moderator <span className="tone">ruled.</span></>} />
             <ConsensusPanel moderator={moderator} record={recordFor("moderator", "moderate")} />
           </section>
 
           <section className="flex flex-col gap-6">
-            <ResultHead eyebrow="Proof" title={<>Proof it ran <span className="tone">privately.</span></>} />
+            <ResultHead title={<>Proof it ran <span className="tone">privately.</span></>} />
             <VerifiedPanel verified={result.verified} />
           </section>
         </div>

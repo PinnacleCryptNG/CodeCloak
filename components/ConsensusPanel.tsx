@@ -46,14 +46,14 @@ export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutp
       <div className="h-1 bg-ink" aria-hidden />
 
       {failed ? (
-        <p role="alert" className="m-5 rounded-xl border border-[#efc3bb] bg-[#fbe6e2] p-4 text-base text-bad sm:mx-6">
+        <p role="alert" className="m-5 rounded-xl border border-bad-line bg-bad-soft p-4 text-base text-bad sm:mx-6">
           {moderator.error ? `Moderator failed (${moderator.error}).` : "Moderator reply was unreadable, so there is no ruling."} No consensus or confidence is
           shown; the disputes below come straight from the challenge votes.
         </p>
       ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 lg:divide-x lg:divide-line">
-        <Column title="Disagreements" count={moderator.disagreements.length} tone="bg-[#fbecd2] text-[#8a5200]">
+        <Column title="Disagreements" count={moderator.disagreements.length} tone="bg-sev-med text-sev-med-fg">
           {moderator.disagreements.length === 0 ? (
             <p className="px-5 pb-5 text-base text-ink-2 sm:px-6">No finding was disputed in the challenge round.</p>
           ) : (
@@ -91,7 +91,7 @@ export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutp
           )}
         </Column>
 
-        <Column title="Consensus" count={moderator.consensus.length} tone="bg-[#e6f2ea] text-ok">
+        <Column title="Consensus" count={moderator.consensus.length} tone="bg-ok-soft text-ok">
           {moderator.consensus.length === 0 ? <p className="px-5 pb-5 text-base text-ink-2 sm:px-6">Nothing survived the challenge round unanimously.</p> : null}
           {moderator.consensus.length > 0 ? (
             <ul className="flex flex-col divide-y divide-line border-t border-line">

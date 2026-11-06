@@ -15,7 +15,7 @@ export function SignatureLine({ record }: { record?: CompletionRecord }) {
       : `Unverified${record.error ? ` · ${record.error}` : sig ? ` · ${sig.reason}` : ""}`;
   return (
     <span className={`inline-flex min-w-0 items-center gap-2 text-base font-medium ${ok ? "text-ok" : "text-bad"}`}>
-      <span aria-hidden className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-base leading-none text-white ${ok ? "bg-ok" : "bg-bad"}`}>
+      <span aria-hidden className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-base leading-none text-paper ${ok ? "bg-ok" : "bg-bad"}`}>
         {ok ? "✓" : "✗"}
       </span>
       <span className="truncate">{text}</span>
@@ -61,7 +61,7 @@ export function AgentCard({
           <h4 className="text-2xl font-semibold leading-none text-ink">{meta.label}</h4>
         </div>
         {!output.error ? (
-          <span className="shrink-0 rounded-full px-3 py-1 font-mono text-base" style={{ background: meta.tint, color: meta.color }}>
+          <span className="shrink-0 rounded-full px-3 py-1 font-mono text-base" style={{ background: `color-mix(in oklab, ${meta.color} 16%, transparent)`, color: `color-mix(in oklab, ${meta.color} 60%, var(--ink))` }}>
             {output.findings.length} {output.findings.length === 1 ? "finding" : "findings"}
           </span>
         ) : null}
