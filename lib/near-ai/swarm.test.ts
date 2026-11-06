@@ -175,3 +175,11 @@ test("swarmConfidence: disputes and missing votes lower it; failed auditors scal
   const clean = audits.map((a) => ({ ...a, findings: [] }));
   assert.deepEqual(swarmConfidence(clean, []), { confidence: 100, basis: "no findings to challenge" });
 });
+
+test("swarm: a failed moderator reports confidence 0 and no basis, even when votes agree", async () => {
+  const near = fakeNear({ fail: "moderator" });
+  const r = await runSwarm(files, MODEL, attestation, { fetch: near.fetchStub, env });
+  assert.ok((r.agents.moderator as { error?: string }).error);
+  assert.equal(r.agents.moderator.confidence, 0);
+  assert.equal(r.agents.moderator.confidenceBasis, undefined);
+});

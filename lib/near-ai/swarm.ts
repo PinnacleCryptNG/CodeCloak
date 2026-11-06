@@ -215,9 +215,14 @@ export async function runSwarm(
       ? { agent: "moderator", consensus: [], disagreements: [], confidence: 0, summary: "", error: mod.record.error }
       : parseModeratorOutput(mod.content);
   parsed.disagreements = mergeDisagreements(parsed.disagreements, contested);
-  const { confidence, basis } = swarmConfidence(audits, challenges);
-  parsed.confidence = confidence;
-  parsed.confidenceBasis = basis;
+  // No ruling, no confidence: a failed or unreadable moderator keeps 0 and no basis.
+  if (!parsed.error && !parsed.parseError) {
+    const { confidence, basis } = swarmConfidence(audits, challenges);
+    parsed.confidence = confidence;
+    parsed.confidenceBasis = basis;
+  } else {
+    parsed.confidence = 0;
+  }
 
   const completions = [
     ...round1.map((r) => r.record),
