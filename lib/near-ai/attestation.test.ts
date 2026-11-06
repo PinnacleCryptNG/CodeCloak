@@ -217,6 +217,20 @@ test("GPU: payload nonce mismatch never reaches NRAS; false verdict throws", asy
   await assertFails({ gpuVerdict: false }, "nvidia_gpu");
 });
 
+test("review fixes: null model entry, missing model_name, empty GPU payload, no remote text in checks", async () => {
+  await assertFails({ mutate: (b) => ((b.model_attestations as unknown[])[0] = null) }, "present");
+  await assertFails({ mutate: (b) => delete b.model_attestations[0].model_name }, "model_name");
+  await assertFails({ mutate: (b) => (b.model_attestations[0].model_name = "other/model") }, "model_name");
+  await assertFails({ mutate: (b) => (b.model_attestations[0].nvidia_payload = "") }, "nvidia_gpu");
+  const bad = [...EVENT_LOG.slice(0, 2), { ...EVENT_LOG[2], event: "SECRET-EVENT-NAME" }];
+  const { deps } = await setup({ mutate: (b) => (b.gateway_attestation.event_log = bad) });
+  await assert.rejects(assertAttestationOrThrow(MODEL, deps), (error: unknown) => {
+    assert.ok(error instanceof AttestationError);
+    assert.ok(!JSON.stringify(error.checks).includes("SECRET-EVENT-NAME"));
+    return true;
+  });
+});
+
 test("non-ecdsa or malformed signer is rejected", () => {
   const nonce = "0".repeat(64);
   assert.throws(

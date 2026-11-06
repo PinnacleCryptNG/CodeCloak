@@ -176,6 +176,9 @@ export function extractSigningAddresses(response: AttestationResponse): SignerId
     ...models.map((m, i): [string, RawReport] => [`model[${i}]`, m]),
   ];
   return labelled.map(([label, report]) => {
+    if (!report || typeof report !== "object" || Array.isArray(report)) {
+      throw new AttestationError("invalid_report", [{ report: label, name: "present", ok: false }]);
+    }
     if (report.signing_algo !== "ecdsa" || !ECDSA_ADDRESS_RE.test(report.signing_address ?? "")) {
       throw new AttestationError("invalid_signer", [{ report: label, name: "signing_address", ok: false }]);
     }
@@ -243,8 +246,10 @@ async function verifyReport(
       checks.push({ report: label, name, ok: true });
       return value;
     } catch (error) {
-      const detail = error instanceof AttestationError ? error.message : error instanceof Error ? error.message : "failed";
-      checks.push({ report: label, name, ok: false, detail: detail.slice(0, 120) });
+      // Only our own snake_case codes are surfaced; never echo text from remote reports or libraries.
+      const message = error instanceof Error ? error.message : "";
+      const detail = /^[a-z0-9_]{1,64}$/.test(message) ? message : "failed";
+      checks.push({ report: label, name, ok: false, detail });
       throw error;
     }
   };
@@ -267,9 +272,16 @@ async function verifyReport(
     const actual = hexToBuffer(quote.mrConfigId, "mr_config_id");
     if (!actual.equals(expectedMrConfigId(readAppCompose(report.info)))) throw new Error("mrconfigid_mismatch");
   });
-  const gpu: GpuResult = report.nvidia_payload
-    ? await step("nvidia_gpu", () => verifyGpuEvidence(report.nvidia_payload!, nonce, deps))
-    : "not_present";
+  // Any present nvidia_payload (even empty or non-string) must verify; only an absent field is "not_present".
+  const gpu: GpuResult =
+    report.nvidia_payload !== undefined
+      ? await step("nvidia_gpu", () => {
+          if (typeof report.nvidia_payload !== "string" || report.nvidia_payload.length === 0) {
+            throw new Error("gpu_payload_invalid");
+          }
+          return verifyGpuEvidence(report.nvidia_payload, nonce, deps);
+        })
+      : "not_present";
   return { ...signer, tcbStatus: quote.status, advisoryIds: quote.advisoryIds, gpu };
 }
 
@@ -288,7 +300,7 @@ export async function assertAttestationOrThrow(
 
   const checks: Check[] = [];
   reports.slice(1).forEach((report, i) => {
-    const ok = report.model_name === undefined || report.model_name === model;
+    const ok = report.model_name === model;
     checks.push({ report: `model[${i}]`, name: "model_name", ok });
   });
 
