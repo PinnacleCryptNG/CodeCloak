@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { AttestationError, assertAttestationOrThrow, type VerifiedAttestation } from "@/lib/near-ai/attestation";
 import { resolveModel } from "@/lib/near-ai/chat";
 import type { ReviewFile } from "@/lib/near-ai/prompts/common";
-import { runSwarm } from "@/lib/near-ai/swarm";
+import { runSwarm, type SwarmStage } from "@/lib/near-ai/swarm";
 import type { ReviewResponse, VerifiedPayload } from "@/lib/types";
 import { isSampleId, loadSample } from "@/lib/samples";
 
@@ -97,21 +97,46 @@ export async function POST(request: Request): Promise<Response> {
   const reviewedSha256 = createHash("sha256")
     .update(input.files.map((f) => `${f.name}\n${f.content}`).join("\n"))
     .digest("hex");
-  const swarm = await runSwarm(input.files, model, attestation);
-  if (swarm.completions.filter((c) => c.round === "audit").every((c) => c.error)) {
-    return error(502, swarm.completions[0]?.error ?? "completion_failed");
+  const run = async (onStage?: (stage: SwarmStage) => void): Promise<ReviewResponse | { error: string }> => {
+    const swarm = await runSwarm(input.files, model, attestation, {}, onStage);
+    if (swarm.completions.filter((c) => c.round === "audit").every((c) => c.error)) {
+      return { error: swarm.completions[0]?.error ?? "completion_failed" };
+    }
+    // 3. Each completion carries its own signature verdict; the panel is green only if all verified.
+    return {
+      agents: swarm.agents,
+      challenges: swarm.challenges,
+      verified: {
+        ...publicAttestation(attestation),
+        completions: swarm.completions,
+        allSignaturesVerified: swarm.completions.every((c) => c.signature?.status === "verified"),
+        reviewedSha256,
+      },
+    };
+  };
+
+  if (!request.headers.get("accept")?.includes("application/x-ndjson")) {
+    const result = await run();
+    return "error" in result ? error(502, result.error) : Response.json(result, { headers: { "Cache-Control": "no-store" } });
   }
 
-  // 3. Each completion carries its own signature verdict; the panel is green only if all verified.
-  const result: ReviewResponse = {
-    agents: swarm.agents,
-    challenges: swarm.challenges,
-    verified: {
-      ...publicAttestation(attestation),
-      completions: swarm.completions,
-      allSignaturesVerified: swarm.completions.every((c) => c.signature?.status === "verified"),
-      reviewedSha256,
+  // Progress stream for the UI: stage names only, then the final result. Attestation already passed.
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: Record<string, unknown>) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+      try {
+        send({ stage: "auditors" });
+        const result = await run((stage) => send({ stage }));
+        send("error" in result ? { error: result.error } : { result });
+      } catch {
+        send({ error: "review_failed" });
+      } finally {
+        controller.close();
+      }
     },
-  };
-  return Response.json(result, { headers: { "Cache-Control": "no-store" } });
+  });
+  return new Response(stream, {
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" },
+  });
 }
