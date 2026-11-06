@@ -110,7 +110,9 @@ function publicAttestation(a: VerifiedAttestation): Omit<VerifiedPayload, "compl
     model: a.model,
     nonce: a.nonce,
     verifiedAt: a.verifiedAt,
-    verifier: "Intel TDX quote (dcap-qvl) + RTMR3 replay + MRCONFIGID + NVIDIA NRAS",
+    verifier:
+      "Intel TDX quote (dcap-qvl) + pinned MRTD/RTMR0-2/compose hash + RTMR3 replay + MRCONFIGID" +
+      (a.models.every((m) => m.gpu !== "not_present") ? " + NVIDIA NRAS" : ""),
     gateway: report(a.gateway),
     models: a.models.map(report),
     checks: a.checks,
@@ -141,7 +143,7 @@ async function review(request: Request, deps: ReviewDeps): Promise<Response> {
   const input = parseInput(body);
   if (!input.ok) return safeError(input.code, input.code === "code_too_large" ? { limit_bytes: MAX_CODE_BYTES } : {});
 
-  const limited = (deps.rateLimiter ?? defaultLimiter).take(clientKey(request));
+  const limited = (deps.rateLimiter ?? defaultLimiter).take(clientKey(request, env));
   if (!limited.ok) return safeError("rate_limited", { retry_after_s: limited.retryAfterS });
 
   const model = resolveModel(env);
@@ -169,7 +171,7 @@ async function review(request: Request, deps: ReviewDeps): Promise<Response> {
       verified: {
         ...publicAttestation(attestation),
         completions: swarm.completions,
-        allSignaturesVerified: swarm.completions.every((c) => c.signature?.status === "verified"),
+        allSignaturesVerified: swarm.completions.every((c) => c.signature?.status === "verified" && c.signature.signatureKind === "provider_tee"),
         reviewedSha256,
       },
     };

@@ -159,11 +159,30 @@ export function contestedFindings(audits: AgentOutput[], challenges: ChallengeOu
   return out;
 }
 
-/** Keep the moderator's disagreements, then add any contested finding it left out (matched by the leading "ID:" of each topic). */
+const LEADING_ID = /^\s*([A-Za-z]\d{1,3})\s*:\s*/;
+const leadingId = (topic: string) => LEADING_ID.exec(topic)?.[1].toUpperCase();
+
+/**
+ * Server-computed contested entries always stay, with their vote-derived positions. A moderator topic for the same
+ * leading "ID:" is attached as a separate `ruling`, never as a replacement; moderator topics for other ids are kept.
+ */
 export function mergeDisagreements(moderator: Disagreement[], contested: Disagreement[]): Disagreement[] {
-  const leadingId = (topic: string) => /^\s*([A-Za-z]\d{1,3})\s*:/.exec(topic)?.[1].toUpperCase();
-  const covered = new Set(moderator.map((d) => leadingId(d.topic)).filter(Boolean));
-  return [...moderator, ...contested.filter((c) => !covered.has(leadingId(c.topic)))];
+  const contestedIds = new Set(contested.map((c) => leadingId(c.topic)).filter(Boolean));
+  const rulings = new Map<string, string>();
+  for (const d of moderator) {
+    const id = leadingId(d.topic);
+    const ruling = d.topic.replace(LEADING_ID, "").trim().slice(0, 300);
+    if (id && contestedIds.has(id) && ruling && !rulings.has(id)) rulings.set(id, ruling);
+  }
+  const kept = contested.map((c) => {
+    const ruling = rulings.get(leadingId(c.topic) ?? "");
+    return ruling ? { ...c, ruling } : c;
+  });
+  const extra = moderator.filter((d) => {
+    const id = leadingId(d.topic);
+    return !(id && contestedIds.has(id));
+  });
+  return [...kept, ...extra];
 }
 
 export async function runSwarm(
@@ -173,7 +192,8 @@ export async function runSwarm(
   deps: ChatDeps = {},
   onStage?: (stage: SwarmStage) => void,
 ): Promise<SwarmResult> {
-  const reviewMessage = buildReviewMessage(files, newDelimiter());
+  const delimiter = newDelimiter();
+  const reviewMessage = buildReviewMessage(files, delimiter);
   const call = (agent: AgentName, round: CompletionRecord["round"], system: string, user: string) =>
     callAgent(agent, round, system, user, MAX_TOKENS[round === "moderate" ? "moderate" : round], model, attestation, deps);
 
@@ -197,7 +217,7 @@ export async function runSwarm(
       const ids = new Set(others.map((f) => f.id));
       // A failed auditor or challenge call casts no votes; report them as missing, never as silent agreement.
       if (audits[i].error) return { challenge: { agent, votes: [], missing: [...ids] } };
-      const res = await call(agent, "challenge", challengeSystemPrompt(agent), buildChallengeMessage(reviewMessage, others));
+      const res = await call(agent, "challenge", challengeSystemPrompt(agent), buildChallengeMessage(reviewMessage, others, delimiter));
       const challenge = res.content === null ? { agent, votes: [], parseError: true as const, missing: [...ids] } : parseChallengeOutput(agent, res.content, ids);
       return { challenge, record: res.record };
     }),
@@ -211,7 +231,7 @@ export async function runSwarm(
     "moderator",
     "moderate",
     MODERATOR_SYSTEM_PROMPT,
-    buildModeratorMessage(audits, challenges, contested.map((c) => c.topic)),
+    buildModeratorMessage(audits, challenges, contested.map((c) => c.topic), delimiter),
   );
   const parsed: ModeratorOutput & { error?: string } =
     mod.content === null

@@ -12,7 +12,7 @@ Sending proprietary code to a hosted AI reviewer means trusting the provider not
 
 ## What CodeCloak does
 
-1. **Attests first, fails closed.** Each review starts with a fresh 32-byte nonce and a NEAR AI attestation report. CodeCloak verifies the Intel TDX quotes of the gateway and the model enclaves, replays RTMR3, checks MRCONFIGID, and gets NVIDIA's verdict on the GPU. If any check fails, the API returns `403 attestation_failed` and **no model is ever called**.
+1. **Attests first, fails closed.** Each review starts with a fresh 32-byte nonce and a NEAR AI attestation report. CodeCloak verifies the Intel TDX quotes of the gateway and the model enclaves, replays RTMR3, checks MRCONFIGID, pins MRTD/RTMR0-2 and the app compose to an allowlist of NEAR's enclave images, and requires NVIDIA's verdict on every model GPU. If any check fails, the API returns `403 attestation_failed` and **no model is ever called**.
 2. **Runs an auditor swarm in the enclave.** `security`, `breaking` and `quality` audit in parallel. In a challenge round, each auditor backs or disputes the other auditors' findings. A `moderator` then rules: consensus and **disagreements** (always shown, never flattened). The 0–100 confidence is computed from the challenge votes, not taken from the model (e.g. "10 of 16 challenge votes back the findings"). That is up to 7 calls per review (3 + 3 + 1), all after one attestation; clean code with no findings skips the challenge round and uses 4.
 3. **Verifies every response.** For each completion, the ECDSA signature must cover the exact request and response bytes (`model:request_hash:response_hash`). It must also come from a model signer that was attested *before* your code was sent.
 4. **Keeps nothing.** There is no database, no disk writes and no analytics. Code lives in request memory only and is never logged or echoed. The response carries only a SHA-256 of the reviewed text.
@@ -50,7 +50,7 @@ A `NEARAI_API_KEY` exported in your shell overrides `.env.local`. If the key you
 5. **Pick Refunds service and run** → the security agent reports the code comment that tells AI reviewers to approve the code, flagging it as a prompt-injection attempt instead of obeying it.
 6. **Click Paste, paste more than 80 KB** → the counter turns red and the button is disabled. Sending it to the API anyway returns `413 code_too_large` with "Pasted code is over the 80 KB limit."
 7. **Remove `NEARAI_API_KEY` from `.env.local`, restart `npm run dev`, and run a review** → a red banner says "The server has no NEAR AI API key configured." The API returns `500 server_not_configured` and nothing is sent anywhere.
-8. **Run `npm run test:failclosed`** → 17 tests pass, proving the attestation-failure path never reaches a model. They cover 15 tampered-attestation cases (bad nonce, bad quote, empty `model_attestations`, signer mismatch, RTMR3, MRCONFIGID, NVIDIA and more). Each must return `403 attestation_failed` with zero completion calls, and the code and key must never appear in a response or log.
+8. **Run `npm run test:failclosed`** → 25 tests pass, proving the attestation-failure path never reaches a model. They cover tampered-attestation cases (bad nonce, bad quote, empty `model_attestations`, signer mismatch, RTMR3, MRCONFIGID, MRTD/RTMR0-2 or compose not on the allowlist, missing or failing NVIDIA evidence and more). Each must return `403 attestation_failed` with zero completion calls, and the code and key must never appear in a response or log.
 9. **Check the API directly** (with the dev server running):
    ```bash
    curl -s -X POST localhost:3000/api/review -H 'Content-Type: application/json' \
@@ -58,7 +58,7 @@ A `NEARAI_API_KEY` exported in your shell overrides `.env.local`. If the key you
    ```
       (`vuln-sql` is the API id of Orders API; the others are `vuln-auth`, `vuln-path`, `vuln-inject`.) → JSON with `agents` (`security`, `breaking`, `quality`, `moderator`), `challenges`, and `verified` (`nonce`, `checks`, `completions[].signature`, `allSignaturesVerified`, `reviewedSha256`).
 
-Other checks: `npm test` (60 unit tests), `npm run lint`, `npm run build`.
+Other checks: `npm test` (78 unit tests), `npm run lint`, `npm run build`.
 
 ## Environment variables
 
@@ -67,17 +67,19 @@ Other checks: `npm test` (60 unit tests), `npm run lint`, `npm run build`.
 | `NEARAI_API_KEY` | yes | — | NEAR AI Cloud key. Server-side only; never sent to the browser. |
 | `NEARAI_CLOUD_API_KEY` | no | — | Accepted as a fallback name for the key. |
 | `NEARAI_MODEL` | no | `Qwen/Qwen3.8-27B` | Model to attest and run. `z-ai/glm-5.3-flash` also passes attestation. Use NEAR TEE models only. |
+| `CODECLOAK_TRUSTED_MEASUREMENTS` | no | built-in (`lib/near-ai/measurements.ts`) | JSON allowlist of enclave measurements; replaces the defaults. When NEAR ships new images, reviews fail closed until you run `npm run measurements`, review the output and set it here. |
+| `TRUSTED_PROXY_IP_HEADER` | no | — | Off Vercel only: the client-IP header your reverse proxy overwrites or appends to (e.g. `X-Forwarded-For`, last hop used). Unset means one shared rate-limit bucket for all clients. |
 
 ## Zero retention and abuse limits
 
 - Code exists only in the memory of one request. There is no database, no disk writes and no analytics, and request or response bodies are never logged. Every error is a fixed code and message produced by `safeError()` (`lib/errors.ts`).
 - Paste is capped at 80 KB, request bodies at 100 KB, and each review at up to 7 model calls with capped `max_tokens`.
-- Cross-origin browser requests are rejected. Each IP gets 8 reviews per 10 minutes; this limit is kept in memory per server instance.
+- Cross-origin browser requests are rejected. Each IP gets 8 reviews per 10 minutes; this limit is kept in memory per server instance. The IP comes only from headers a proxy controls: Vercel's edge headers when `VERCEL=1`, otherwise the header named in `TRUSTED_PROXY_IP_HEADER` (your proxy must overwrite it). With neither, all clients share one 8-per-10-minute bucket, so spoofed IP headers cannot bypass the limit.
 
 ## Project layout
 
 - `app/api/review/route.ts`: the `POST /api/review` route, a thin wrapper around `lib/review/handler.ts`.
-- `lib/near-ai/attestation.ts` and `lib/near-ai/tdx.ts`: the attestation preflight (nonce, TDX quote, RTMR3, MRCONFIGID, NVIDIA).
+- `lib/near-ai/attestation.ts` and `lib/near-ai/tdx.ts`: the attestation preflight (nonce, TDX quote, RTMR3, MRCONFIGID, pinned measurements, NVIDIA). `lib/near-ai/measurements.ts`: the measurement allowlist.
 - `lib/near-ai/chat.ts`: non-streaming completions and signature verification.
 - `lib/near-ai/swarm.ts` and `lib/near-ai/prompts/`: the auditors, the challenge round and the moderator.
 - `app/page.tsx`: the landing page (hero receipt, Built on NEAR, how it works, swarm, live demo, receipt, FAQ). `app/opengraph-image.tsx`: the share image.

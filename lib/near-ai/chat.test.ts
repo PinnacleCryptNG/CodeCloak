@@ -81,12 +81,14 @@ test("verifySignature: provider_tee bound to exact hashes and a preflight model 
   assert.equal(verifySignature({ ...sig, signature_kind: undefined }, hashes, MODEL, attestation).reason, "unknown_signature_kind");
 });
 
-test("verifySignature: gateway kind must match the gateway report", async () => {
+test("verifySignature: a valid gateway signature is never verified (no model enclave signed it)", async () => {
   const text = `${hashes.requestHash}:${hashes.responseHash}`;
   const sig = { text, signature: await gatewayWallet.signMessage(text), signing_address: gatewayWallet.address, signing_algo: "ecdsa", signature_kind: "gateway" };
   const result = verifySignature(sig, hashes, MODEL, attestation);
-  assert.equal(result.status, "verified");
+  assert.equal(result.status, "unverified");
+  assert.equal(result.reason, "gateway_signed_only");
   assert.equal(result.signatureKind, "gateway");
+  assert.equal(result.signerMatchesPreflight, false);
   const modelSigned = { ...sig, signature: await modelWallet.signMessage(text), signing_address: modelWallet.address };
   assert.equal(verifySignature(modelSigned, hashes, MODEL, attestation).reason, "signer_not_in_preflight");
 });

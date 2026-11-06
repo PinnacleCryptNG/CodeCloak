@@ -165,7 +165,8 @@ export async function fetchSignature(
 /**
  * Recover the EIP-191 signer, check the signed text against our own hashes, and require the signer
  * to match a report verified BEFORE the completion (provider_tee → exactly one model report;
- * gateway → the gateway report). Anything else is "unverified" — never a green badge.
+ * gateway → the gateway report). Only provider_tee can be "verified": a gateway signature does not
+ * prove a model enclave produced the reply, so it is "unverified" (gateway_signed_only) — never a green badge.
  */
 export function verifySignature(
   signature: RawSignature | null,
@@ -201,6 +202,7 @@ export function verifySignature(
     r.signingAlgo === "ecdsa" && r.signingAddress.toLowerCase() === address.toLowerCase();
   const matches = kind === "provider_tee" ? attestation.models.filter(same).length : same(attestation.gateway) ? 1 : 0;
   if (matches !== 1) return fail("signer_not_in_preflight", kind, address);
+  if (kind !== "provider_tee") return fail("gateway_signed_only", kind, address);
 
   return { ...base, status: "verified", reason: "ok", signatureKind: kind, signingAddress: address, signerMatchesPreflight: true };
 }

@@ -20,14 +20,15 @@ C. Fail-closed attestation (hard requirement), before any code leaves the server
    b. Read report_data from the verified quote; require it to bind our nonce and the report's `signing_address`; require echoed `request_nonce` to equal our nonce.
    c. Replay `event_log`; result must equal the quote's RTMR3.
    d. SHA-256 the raw `info.tcb_info.app_compose` string (decode `tcb_info` if it is JSON text; do not reserialize `app_compose`); MRCONFIGID must equal `01` + hash + 15 zero bytes.
-   e. NVIDIA GPU check via NRAS when `nvidia_payload` is present.
+   e. NVIDIA GPU check via NRAS. Required on every model report (missing `nvidia_payload` = fail); on the gateway only when present.
+   f. Pin the quote's MRTD + RTMR0-2 (as one tuple) and the app compose (`composeTemplateHash`: SHA-256 with `INSTANCE_LABEL` masked) to the per-role allowlist in `lib/near-ai/measurements.ts` (override: `CODECLOAK_TRUSTED_MEASUREMENTS`).
    Retain the verified reports (signing_address + signing_algo) for step 5.
 4. Any failure → HTTP 403 `{ "error": "attestation_failed", "checks": [...] }` and do NOT call chat completions.
 5. After completion (non-streaming, canonical model id, x-no-aliasing: true, Accept-Encoding: identity):
    a. Keep the exact request-body bytes sent and exact response-body bytes received before parsing; request_hash = SHA-256(request bytes), response_hash = SHA-256(response bytes).
    b. GET /v1/signature/{chatId}?model=...&signing_algo=ecdsa (bounded retry on 404; a 2xx with `error_code` = unavailable).
    c. Recover the EIP-191 signer from `text` + `signature`; it must equal `signing_address`.
-   d. `provider_tee`: `text` must equal `<MODEL_ID>:<request_hash>:<response_hash>` and the signer must match exactly one report verified in step 3 (a report fetched after the completion does not count). `gateway`: `text` must equal `<request_hash>:<response_hash>` and match the verified gateway report.
+   d. `provider_tee`: `text` must equal `<MODEL_ID>:<request_hash>:<response_hash>` and the signer must match exactly one report verified in step 3 (a report fetched after the completion does not count). `gateway`: `text` must equal `<request_hash>:<response_hash>` and match the verified gateway report, but it is still shown as unverified (`gateway_signed_only`) because no model enclave signed it; `allSignaturesVerified` requires every completion to be a verified `provider_tee` signature.
    e. Any failure or unavailable signature → that agent's result is marked "Unverified" (red) in the panel. Never a green badge.
 6. Verified panel: model actually used, nonce, signature_kind, signer match, TDX quote status, RTMR3/MRCONFIGID checks, NVIDIA result (if run), request/response hashes, timestamp. Never show keys.
 

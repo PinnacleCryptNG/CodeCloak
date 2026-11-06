@@ -7,11 +7,11 @@ export type ReceivedVote = ChallengeVote & { agent: string };
 /** One-line signature state. Green only for a verified signature. */
 export function SignatureLine({ record }: { record?: CompletionRecord }) {
   const sig = record?.signature;
-  const ok = sig?.status === "verified";
+  const ok = sig?.status === "verified" && sig.signatureKind === "provider_tee";
   const text = !record
     ? "Not run"
     : ok
-      ? `Signed in ${sig.signatureKind === "provider_tee" ? "model enclave" : "gateway"}`
+      ? "Signed in model enclave"
       : `Unverified${record.error ? ` · ${record.error}` : sig ? ` · ${sig.reason}` : ""}`;
   return (
     <span className={`inline-flex min-w-0 items-center gap-2 text-base font-medium ${ok ? "text-ok" : "text-bad"}`}>
