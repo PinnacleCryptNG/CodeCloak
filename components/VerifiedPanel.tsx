@@ -1,12 +1,27 @@
 import type { VerifiedPayload } from "@/lib/types";
+import type { ReactNode } from "react";
 import { Badge, Card, Mono } from "./ui";
 import { VerifierScope } from "./VerifierScope";
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1 border-b border-white/5 py-3 last:border-0 sm:flex-row sm:items-start sm:gap-4">
+    <div className="flex flex-col gap-1 border-b border-white/[0.05] py-3 last:border-0 sm:flex-row sm:items-start sm:gap-4">
       <dt className="shrink-0 text-base text-white/50 sm:w-44">{label}</dt>
       <dd className="min-w-0 text-base text-white">{children}</dd>
+    </div>
+  );
+}
+
+function Tile({ ok, label, value }: { ok: boolean; label: string; value: string }) {
+  return (
+    <div className={`flex flex-col gap-1 rounded-xl border p-3.5 ${ok ? "border-mint/25 bg-mint/[0.04]" : "border-red-400/30 bg-red-500/[0.06]"}`}>
+      <span className="flex items-center gap-2 text-base text-white/55">
+        <span aria-hidden className={ok ? "text-mint" : "text-red-300"}>
+          {ok ? "✓" : "✗"}
+        </span>
+        {label}
+      </span>
+      <span className="font-medium tabular-nums text-white">{value}</span>
     </div>
   );
 }
@@ -23,17 +38,30 @@ export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
   );
   const signingReports = verified.models.filter((m) => signers.has(m.signingAddress.toLowerCase()));
   const passed = verified.checks.filter((c) => c.ok).length;
+  const nvidiaOk = verified.models.length > 0 && verified.models.every((m) => m.nvidia === "verified");
+  const signedCount = verified.completions.filter((c) => c.signature?.status === "verified").length;
   return (
-    <Card className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold text-white">Verified</h3>
-          <p className="text-base text-white/50">Checked on the server before your code left it</p>
+    <Card className="anim-rise flex flex-col gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint/10 text-xl text-mint ring-1 ring-mint/40">
+            ✓
+          </span>
+          <div>
+            <h3 className="text-lg font-semibold text-white">Verified</h3>
+            <p className="text-base text-white/50">Checked on the server before your code left it</p>
+          </div>
         </div>
         <Badge ok={verified.allSignaturesVerified}>
           {verified.allSignaturesVerified ? "Attested + all responses signed" : "Attested · some responses unverified"}
         </Badge>
       </header>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Tile ok={passed === verified.checks.length} label="Intel TDX" value={`${passed}/${verified.checks.length} checks`} />
+        <Tile ok={nvidiaOk} label="NVIDIA GPU" value={nvidiaOk ? "NRAS verified" : "not verified"} />
+        <Tile ok={signerMatches === verified.completions.length} label="Signer match" value={`${signerMatches}/${verified.completions.length} responses`} />
+        <Tile ok={verified.allSignaturesVerified} label="Signatures" value={`${signedCount}/${verified.completions.length} verified`} />
+      </div>
       <dl>
         <Row label="Model">
           <Mono>{verified.model}</Mono>
@@ -73,12 +101,12 @@ export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
         </Row>
         <Row label="Verifier">
           {verified.verifier} ·{" "}
-          <a className="text-sky-300 underline underline-offset-4" href="https://docs.near.ai/cloud/verification" target="_blank" rel="noreferrer">
+          <a className="text-mint underline underline-offset-4" href="https://docs.near.ai/cloud/verification" target="_blank" rel="noreferrer">
             docs
           </a>
         </Row>
       </dl>
-      <details className="rounded-xl border border-white/10 bg-black/20 p-4">
+      <details className="rounded-xl border border-white/[0.07] bg-black/25 p-4">
         <summary className="cursor-pointer text-base text-white/70">Per-response signatures ({verified.completions.length})</summary>
         <ul className="mt-3 flex flex-col gap-3">
           {verified.completions.map((c, i) => (

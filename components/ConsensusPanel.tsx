@@ -1,29 +1,36 @@
 import type { CompletionRecord, ModeratorOutput } from "@/lib/types";
 import { SignatureBadge } from "./AgentCard";
-import { Card, SeverityChip } from "./ui";
+import { agentMeta } from "./agents";
+import { AgentAvatar, Card, Ring, SeverityChip } from "./ui";
 
 export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutput & { error?: string }; record?: CompletionRecord }) {
   const failed = Boolean(moderator.error || moderator.parseError);
   const confidence = failed ? 0 : moderator.confidence;
+  const meta = agentMeta("moderator");
   return (
-    <Card className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold text-white">Moderator</h3>
-          <p className="text-base text-white/50">Rules on what survived the challenge round</p>
+    <Card className="anim-rise flex flex-col gap-7">
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <AgentAvatar glyph={meta.glyph} color={meta.color} />
+          <div>
+            <h3 className="text-lg font-semibold text-white">Moderator ruling</h3>
+            <p className="text-base text-white/50">{meta.lens}</p>
+          </div>
         </div>
         <SignatureBadge record={record} />
       </header>
 
-      <div>
-        <div className="flex items-baseline justify-between">
-          <span className="text-base text-white/60">Swarm confidence</span>
-          <span className="text-3xl font-semibold tabular-nums text-white">{failed ? "—" : confidence}</span>
+      <div className="flex flex-col gap-5 rounded-xl border border-white/[0.07] bg-black/25 p-5 sm:flex-row sm:items-center">
+        <Ring value={failed ? null : confidence} label="Swarm confidence" />
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="font-mono text-base uppercase tracking-[0.2em] text-white/45">Swarm confidence</span>
+          <p className="text-base text-white/70">
+            {failed
+              ? "No ruling, so no confidence."
+              : moderator.confidenceBasis ?? "Computed from the challenge votes, not taken from the model."}
+          </p>
+          {moderator.summary && !failed ? <p className="mt-2 text-base leading-relaxed text-white/85">{moderator.summary}</p> : null}
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={confidence} aria-label="Swarm confidence">
-          <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-emerald-400" style={{ width: `${confidence}%` }} />
-        </div>
-        {!failed && moderator.confidenceBasis ? <p className="mt-2 text-base text-white/50">{moderator.confidenceBasis}</p> : null}
       </div>
 
       {failed ? (
@@ -32,41 +39,67 @@ export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutp
           shown; the disputes below come straight from the challenge votes.
         </p>
       ) : null}
-      {moderator.summary ? <p className="text-base leading-relaxed text-white/80">{moderator.summary}</p> : null}
 
-      <div className="flex flex-col gap-3">
-        <h4 className="text-base font-semibold uppercase tracking-wide text-amber-300">Disagreements ({moderator.disagreements.length})</h4>
-        {moderator.disagreements.length === 0 ? (
-          <p className="text-base text-white/60">No finding was disputed in the challenge round.</p>
-        ) : (
-          moderator.disagreements.map((d) => (
-            <div key={d.topic} className="rounded-xl border border-amber-400/30 bg-amber-500/[0.06] p-4">
-              <p className="font-medium text-amber-100">{d.topic}</p>
-              <dl className="mt-3 flex flex-col gap-2">
-                {Object.entries(d.positions).map(([agent, position]) => (
-                  <div key={agent} className="text-base">
-                    <dt className="inline font-medium capitalize text-white">{agent}: </dt>
-                    <dd className="inline text-white/75">{position}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ))
-        )}
-      </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="flex flex-col gap-3">
+          <h4 className="flex items-center gap-2 font-mono text-base uppercase tracking-[0.15em] text-amber-300">
+            <span aria-hidden className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_10px_#fcd34d]" />
+            Disagreements ({moderator.disagreements.length})
+          </h4>
+          {moderator.disagreements.length === 0 ? (
+            <p className="text-base text-white/60">No finding was disputed in the challenge round.</p>
+          ) : (
+            moderator.disagreements.map((d) => (
+              <div key={d.topic} className="rounded-xl border border-amber-400/25 bg-amber-500/[0.05] p-4">
+                <p className="font-medium text-amber-50">{d.topic}</p>
+                <dl className="mt-3 flex flex-col gap-2.5">
+                  {Object.entries(d.positions).map(([agent, position]) => {
+                    const am = agentMeta(agent);
+                    return (
+                      <div key={agent} className="flex gap-2.5 text-base">
+                        <span aria-hidden className="mt-2 h-2 w-2 shrink-0 rounded-full" style={{ background: am.color }} />
+                        <div>
+                          <dt className="inline font-medium text-white">{am.label}: </dt>
+                          <dd className="inline text-white/70">{position}</dd>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </dl>
+              </div>
+            ))
+          )}
+        </div>
 
-      <div className="flex flex-col gap-3">
-        <h4 className="text-base font-semibold uppercase tracking-wide text-emerald-300">Consensus ({moderator.consensus.length})</h4>
-        {moderator.consensus.map((c) => (
-          <div key={c.title} className="rounded-xl border border-white/10 bg-black/20 p-4">
-            <div className="flex items-start gap-3">
-              <SeverityChip severity={c.severity} />
-              <p className="font-medium text-white">{c.title}</p>
+        <div className="flex flex-col gap-3">
+          <h4 className="flex items-center gap-2 font-mono text-base uppercase tracking-[0.15em] text-emerald-300">
+            <span aria-hidden className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_10px_#6ee7b7]" />
+            Consensus ({moderator.consensus.length})
+          </h4>
+          {moderator.consensus.length === 0 ? <p className="text-base text-white/60">Nothing survived the challenge round unanimously.</p> : null}
+          {moderator.consensus.map((c) => (
+            <div key={c.title} className="rounded-xl border border-white/[0.07] bg-black/25 p-4">
+              <div className="flex items-start gap-3">
+                <SeverityChip severity={c.severity} />
+                <p className="font-medium leading-snug text-white">{c.title}</p>
+              </div>
+              <p className="mt-2 text-base leading-relaxed text-white/70">{c.detail}</p>
+              {c.agreed_by.length > 0 ? (
+                <p className="mt-3 flex flex-wrap items-center gap-2 text-base text-white/45">
+                  Agreed by
+                  {c.agreed_by.map((a) => {
+                    const am = agentMeta(a);
+                    return (
+                      <span key={a} className="rounded-md px-2 py-0.5 text-base" style={{ background: `${am.color}1a`, color: am.color }}>
+                        {am.label}
+                      </span>
+                    );
+                  })}
+                </p>
+              ) : null}
             </div>
-            <p className="mt-2 text-base leading-relaxed text-white/75">{c.detail}</p>
-            {c.agreed_by.length > 0 ? <p className="mt-2 text-base text-white/50">Agreed by {c.agreed_by.join(", ")}</p> : null}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </Card>
   );

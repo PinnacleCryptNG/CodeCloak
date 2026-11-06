@@ -15,7 +15,7 @@ const NOT_VERIFIED = [
 
 export function VerifierScope() {
   return (
-    <aside aria-labelledby="verifier-scope" className="rounded-xl border border-white/10 bg-black/20 p-4 text-base text-white/60">
+    <aside aria-labelledby="verifier-scope" className="rounded-xl border border-white/[0.07] bg-black/25 p-4 text-base text-white/60">
       <h4 id="verifier-scope" className="font-semibold text-white/80">
         Demo verifier scope
       </h4>
@@ -33,7 +33,7 @@ export function VerifierScope() {
       </ul>
       <p className="mt-3">
         Responses signed only by the gateway, or with an unreadable signature, are marked unverified above.{" "}
-        <a className="text-sky-300 underline underline-offset-4" href="https://docs.near.ai/cloud/verification" target="_blank" rel="noreferrer">
+        <a className="text-mint underline underline-offset-4" href="https://docs.near.ai/cloud/verification" target="_blank" rel="noreferrer">
           How NEAR AI Cloud verification works
         </a>
       </p>
