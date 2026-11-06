@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test 'lib/**/*.test.ts'"
   },
   "dependencies": {
+    "@phala/dcap-qvl-node": "^0.3.3",
+    "jose": "^6.2.15",
     "next": "16.4.5",
     "react": "19.3.0",
     "react-dom": "19.3.0"
@@ -21,6 +24,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   },
   "engines": {
