@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Footer, Nav } from "@/components/Chrome";
-import { LogoMark } from "@/components/Logo";
 
 export const metadata = { title: "Not found" };
 
@@ -9,17 +8,13 @@ export default function NotFound() {
     <>
       <Nav />
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-6 px-5 py-28 text-center">
-        <div className="relative">
-          <div className="absolute inset-0 -z-10 rounded-full bg-violet/30 blur-3xl" />
-          <LogoMark className="h-20 w-20" />
-        </div>
-        <p className="font-mono text-base tracking-[0.3em] text-white/40">ERROR 404</p>
-        <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-          This page is <span className="font-serif text-5xl font-normal italic text-gradient sm:text-6xl">cloaked.</span>
+        <p className="font-display text-[7rem] font-semibold italic leading-none text-coral sm:text-[10rem]">404</p>
+        <h1 className="font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
+          Nothing here. <em className="text-coral">Not even logs.</em>
         </h1>
-        <p className="max-w-md text-lg text-white/60">Or it never existed. Unlike your code, we can&apos;t prove which.</p>
-        <Link href="/" className="rounded-xl bg-white px-5 py-3 text-base font-semibold text-black transition hover:bg-white/90">
-          Back to CodeCloak
+        <p className="max-w-md text-lg text-ink-2">This page doesn&apos;t exist. Like your code, it was never stored.</p>
+        <Link href="/" className="rounded-full bg-ink px-6 py-3.5 text-base font-semibold text-paper transition hover:bg-ink-2">
+          Back to codecloak
         </Link>
       </main>
       <Footer />

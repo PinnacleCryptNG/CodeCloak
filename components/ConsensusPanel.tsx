@@ -1,105 +1,92 @@
 import type { CompletionRecord, ModeratorOutput } from "@/lib/types";
 import { SignatureBadge } from "./AgentCard";
-import { agentMeta } from "./agents";
-import { AgentAvatar, Card, Ring, SeverityChip } from "./ui";
+import { AgentInitial, AgentTag, Card, RichText, SeverityChip } from "./ui";
 
 export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutput & { error?: string }; record?: CompletionRecord }) {
   const failed = Boolean(moderator.error || moderator.parseError);
-  const confidence = failed ? 0 : moderator.confidence;
-  const meta = agentMeta("moderator");
   return (
-    <Card className="anim-rise flex flex-col gap-7">
-      <header className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <AgentAvatar glyph={meta.glyph} color={meta.color} />
+    <Card as="article" className="anim-rise flex min-w-0 flex-col overflow-hidden">
+      <header className="flex flex-col gap-4 border-b border-line p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="flex items-center gap-3.5">
+          <AgentInitial name="moderator" />
           <div>
-            <h3 className="text-lg font-semibold text-white">Moderator ruling</h3>
-            <p className="text-base text-white/50">{meta.lens}</p>
+            <h4 className="font-display text-2xl font-semibold leading-tight text-ink">Moderator ruling</h4>
+            <p className="text-base text-ink-2">Reads every finding and vote, then rules</p>
           </div>
         </div>
         <SignatureBadge record={record} />
       </header>
 
-      <div className="flex flex-col gap-5 rounded-xl border border-white/[0.07] bg-black/25 p-5 sm:flex-row sm:items-center">
-        <Ring value={failed ? null : confidence} label="Swarm confidence" />
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className="font-mono text-base uppercase tracking-[0.2em] text-white/45">Swarm confidence</span>
-          <p className="text-base text-white/70">
-            {failed
-              ? "No ruling, so no confidence."
-              : moderator.confidenceBasis ?? "Computed from the challenge votes, not taken from the model."}
-          </p>
-          {moderator.summary && !failed ? <p className="mt-2 text-base leading-relaxed text-white/85">{moderator.summary}</p> : null}
-        </div>
-      </div>
-
       {failed ? (
-        <p role="alert" className="rounded-xl border border-red-400/40 bg-red-500/10 p-4 text-base text-red-200">
+        <p role="alert" className="m-5 rounded-xl border border-[#efc3bb] bg-[#fbe6e2] p-4 text-base text-bad sm:m-6">
           {moderator.error ? `Moderator failed (${moderator.error}).` : "Moderator reply was unreadable, so there is no ruling."} No consensus or confidence is
           shown; the disputes below come straight from the challenge votes.
         </p>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-3">
-          <h4 className="flex items-center gap-2 font-mono text-base uppercase tracking-[0.15em] text-amber-300">
-            <span aria-hidden className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_10px_#fcd34d]" />
-            Disagreements ({moderator.disagreements.length})
-          </h4>
+      <div className="grid grid-cols-1 lg:grid-cols-2">
+        <section className="flex min-w-0 flex-col gap-4 border-b border-line p-5 sm:p-6 lg:border-b-0 lg:border-r">
+          <h5 className="flex items-center justify-between gap-3 font-semibold text-ink">
+            Disagreements
+            <span className="rounded-full bg-[#fbecd2] px-2.5 py-0.5 font-mono text-base text-[#8a5200]">{moderator.disagreements.length}</span>
+          </h5>
           {moderator.disagreements.length === 0 ? (
-            <p className="text-base text-white/60">No finding was disputed in the challenge round.</p>
+            <p className="text-base text-ink-2">No finding was disputed in the challenge round.</p>
           ) : (
-            moderator.disagreements.map((d) => (
-              <div key={d.topic} className="rounded-xl border border-amber-400/25 bg-amber-500/[0.05] p-4">
-                <p className="font-medium text-amber-50">{d.topic}</p>
-                <dl className="mt-3 flex flex-col gap-2.5">
-                  {Object.entries(d.positions).map(([agent, position]) => {
-                    const am = agentMeta(agent);
-                    return (
-                      <div key={agent} className="flex gap-2.5 text-base">
-                        <span aria-hidden className="mt-2 h-2 w-2 shrink-0 rounded-full" style={{ background: am.color }} />
-                        <div>
-                          <dt className="inline font-medium text-white">{am.label}: </dt>
-                          <dd className="inline text-white/70">{position}</dd>
-                        </div>
+            <ul className="flex flex-col gap-3">
+              {moderator.disagreements.map((d) => (
+                <li key={d.topic} className="rounded-xl border border-line bg-paper/60 p-4">
+                  <p className="font-semibold leading-snug text-ink">
+                    <RichText text={d.topic} />
+                  </p>
+                  <dl className="mt-3 flex flex-col gap-3">
+                    {Object.entries(d.positions).map(([agent, position]) => (
+                      <div key={agent} className="flex flex-col items-start gap-1">
+                        <dt>
+                          <AgentTag name={agent} />
+                        </dt>
+                        <dd className="text-base text-ink-2">
+                          <RichText text={position} />
+                        </dd>
                       </div>
-                    );
-                  })}
-                </dl>
-              </div>
-            ))
+                    ))}
+                  </dl>
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
+        </section>
 
-        <div className="flex flex-col gap-3">
-          <h4 className="flex items-center gap-2 font-mono text-base uppercase tracking-[0.15em] text-emerald-300">
-            <span aria-hidden className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_10px_#6ee7b7]" />
-            Consensus ({moderator.consensus.length})
-          </h4>
-          {moderator.consensus.length === 0 ? <p className="text-base text-white/60">Nothing survived the challenge round unanimously.</p> : null}
-          {moderator.consensus.map((c) => (
-            <div key={c.title} className="rounded-xl border border-white/[0.07] bg-black/25 p-4">
-              <div className="flex items-start gap-3">
-                <SeverityChip severity={c.severity} />
-                <p className="font-medium leading-snug text-white">{c.title}</p>
-              </div>
-              <p className="mt-2 text-base leading-relaxed text-white/70">{c.detail}</p>
-              {c.agreed_by.length > 0 ? (
-                <p className="mt-3 flex flex-wrap items-center gap-2 text-base text-white/45">
-                  Agreed by
-                  {c.agreed_by.map((a) => {
-                    const am = agentMeta(a);
-                    return (
-                      <span key={a} className="rounded-md px-2 py-0.5 text-base" style={{ background: `${am.color}1a`, color: am.color }}>
-                        {am.label}
-                      </span>
-                    );
-                  })}
+        <section className="flex min-w-0 flex-col gap-4 p-5 sm:p-6">
+          <h5 className="flex items-center justify-between gap-3 font-semibold text-ink">
+            Consensus
+            <span className="rounded-full bg-[#e6f2ea] px-2.5 py-0.5 font-mono text-base text-ok">{moderator.consensus.length}</span>
+          </h5>
+          {moderator.consensus.length === 0 ? <p className="text-base text-ink-2">Nothing survived the challenge round unanimously.</p> : null}
+          <ul className="flex flex-col gap-3">
+            {moderator.consensus.map((c) => (
+              <li key={c.title} className="rounded-xl border border-line bg-card p-4">
+                <div className="flex items-start gap-3">
+                  <SeverityChip severity={c.severity} />
+                  <p className="min-w-0 font-semibold leading-snug text-ink">
+                    <RichText text={c.title} />
+                  </p>
+                </div>
+                <p className="mt-2 text-base leading-relaxed text-ink-2">
+                  <RichText text={c.detail} />
                 </p>
-              ) : null}
-            </div>
-          ))}
-        </div>
+                {c.agreed_by.length > 0 ? (
+                  <p className="mt-3 flex flex-wrap items-center gap-2 text-base text-muted">
+                    Agreed by
+                    {c.agreed_by.map((a) => (
+                      <AgentTag key={a} name={a} />
+                    ))}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </Card>
   );

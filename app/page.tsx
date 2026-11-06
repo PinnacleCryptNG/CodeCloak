@@ -1,48 +1,44 @@
-import { Footer, Nav } from "@/components/Chrome";
-import { EnclaveVisual } from "@/components/EnclaveVisual";
+import { REPO, Footer, Nav } from "@/components/Chrome";
+import { HeroPreview } from "@/components/HeroPreview";
 import { ReviewApp, type SampleView } from "@/components/ReviewApp";
+import { NOT_VERIFIED } from "@/components/VerifierScope";
 import { AGENT_META } from "@/components/agents";
+import { AgentInitial, ButtonLink, Card, Eyebrow, SectionHead } from "@/components/ui";
 import { loadAllSamples } from "@/lib/samples";
 
 const SAMPLE_LABELS: Record<string, string> = {
   "vuln-auth": "JWT login and password check",
   "vuln-sql": "Order lookup queries",
   "vuln-path": "File upload storage",
-  "vuln-inject": "Billing refunds, with a note to AI reviewers",
+  "vuln-inject": "Refunds, with a note to AI reviewers",
 };
 
-const PIPELINE = [
-  {
-    n: "01",
-    title: "Attest, or refuse",
-    body: "A fresh nonce goes to NEAR AI Cloud. Intel TDX quotes, RTMR3, MRCONFIGID and NVIDIA GPU evidence are verified. Any failure stops the review before your code is sent.",
-    tag: "fail-closed",
-  },
-  {
-    n: "02",
-    title: "Three auditors",
-    body: "Security, breaking-change and quality auditors review the code in parallel, each inside the TEE, each with its own lens.",
-    tag: "parallel",
-  },
-  {
-    n: "03",
-    title: "Challenge round",
-    body: "Every auditor reads the other two's findings and backs or disputes each one, with a reason. Disagreement is a feature, not noise.",
-    tag: "swarm",
-  },
-  {
-    n: "04",
-    title: "Moderate & sign",
-    body: "A moderator rules on what survived. Confidence comes from the votes. Every response signature is bound to the exact request and response bytes.",
-    tag: "7 signed calls",
-  },
+const PROOF_STRIP = [
+  ["Intel TDX", "Quotes verified with dcap-qvl"],
+  ["NVIDIA GPU", "NRAS verdict verified"],
+  ["Signed bytes", "ECDSA over exact bytes"],
+  ["Zero retention", "No database, disk or logs"],
 ];
 
-const GUARANTEES = [
-  { title: "Fail-closed attestation", body: "No verified enclave, no model call. A test fakes 15 attestation failures and proves none reaches a completion." },
-  { title: "Signed, byte-exact", body: "Each response's ECDSA signature covers hashes of the exact request and response, from a signer attested before your code left." },
-  { title: "Zero retention", body: "No database, no disk, no analytics. Code lives in memory for the request and never appears in logs or errors." },
-  { title: "Injection-aware", body: "Code is wrapped as untrusted data. Instructions inside it become findings, not orders. Try vuln-inject." },
+const ROUNDS = [
+  { title: "Attest, or refuse.", body: "A fresh nonce goes to NEAR AI Cloud. If any Intel TDX, RTMR3, config or GPU check fails, the review stops before your code is sent." },
+  { title: "Three auditors.", body: "Security, breaking-change and quality auditors read your code in parallel, each in its own enclave call with its own lens." },
+  { title: "Challenge round.", body: "Each auditor reads the other two's findings and backs or disputes every one, with a reason you can read." },
+  { title: "Rule and sign.", body: "A moderator rules on what survived. Confidence comes from the votes, and every response signature is checked." },
+];
+
+const AGENT_QUESTIONS: Record<string, string> = {
+  security: "Can an attacker reach this?",
+  breaking: "Will this break a caller?",
+  quality: "Will the next engineer understand it?",
+  moderator: "What actually survived the argument?",
+};
+
+const PROVEN = [
+  ["The enclave is real", "Intel TDX quotes for the gateway and model, bound to a nonce minted for your review."],
+  ["The GPU is real", "NVIDIA evidence goes to NRAS; the verdict token is verified against NVIDIA's keys."],
+  ["The answer is untouched", "Every response is signed over its exact bytes by a signer attested before your code left."],
+  ["Nothing is kept", "No database, no disk, no analytics. Code never appears in logs or error messages."],
 ];
 
 export default function Home() {
@@ -51,107 +47,151 @@ export default function Home() {
   return (
     <>
       <Nav />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-28 px-5 pb-8 pt-12 sm:pt-20">
-        <header className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <div className="flex flex-col gap-7">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-28 px-5 pb-24 pt-14 sm:gap-36 sm:pt-20">
+        <header className="grid grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-16">
+          <div className="flex flex-col gap-8">
             <a
-              href="https://github.com/PinnacleCryptNG/CodeCloak"
+              href="https://docs.near.ai/cloud/verification"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-base text-white/70 transition hover:border-white/25"
+              className="inline-flex w-fit items-center gap-2.5 rounded-full border border-line bg-card px-4 py-1.5 text-base text-ink-2 transition hover:border-ink/30"
             >
-              <span className="h-2 w-2 rounded-full bg-mint shadow-[0_0_10px_var(--mint)]" />
-              NEAR AI Cloud · private TEE inference
+              <span className="h-2 w-2 rounded-full bg-coral" />
+              Built on NEAR AI Cloud private inference
             </a>
-            <h1 className="text-[2.6rem] font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl">
-              Code review by an AI swarm that{" "}
-              <span className="font-serif text-[3rem] font-normal italic leading-none text-gradient sm:text-7xl">argues in private.</span>
+            <h1 className="font-display text-[3.3rem] font-semibold leading-[0.95] text-ink sm:text-[5rem] lg:text-[5.6rem]">
+              Private code review, <em className="block text-coral">with receipts.</em>
             </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-white/65">
-              Three auditors review your code inside attested enclaves, challenge each other&apos;s findings, and a moderator rules. The enclave is
-              verified before your code leaves the server. Nothing is stored.
+            <p className="max-w-xl text-xl leading-relaxed text-ink-2">
+              Three AI auditors review your code inside hardware-attested enclaves, argue over each other&apos;s findings, and a moderator rules. We verify the
+              enclave before your code leaves our server, check every signature, and keep nothing.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <a
-                href="#review"
-                className="rounded-xl bg-gradient-to-r from-mint to-[#7fe7ff] px-6 py-3.5 text-center text-base font-semibold text-black shadow-[0_10px_40px_-10px_var(--mint)] transition hover:brightness-110"
-              >
-                Run a private review →
-              </a>
-              <a href="#how" className="rounded-xl border border-white/15 px-6 py-3.5 text-center text-base font-medium text-white transition hover:bg-white/[0.04]">
-                How it works
-              </a>
+              <ButtonLink href="#review">Run a private review →</ButtonLink>
+              <ButtonLink href="#how" variant="ghost">
+                See how it works
+              </ButtonLink>
             </div>
-            <dl className="grid max-w-lg grid-cols-3 gap-4 border-t border-white/[0.06] pt-6">
-              {[
-                ["4", "agents"],
-                ["7", "signed calls"],
-                ["0", "bytes stored"],
-              ].map(([v, l]) => (
-                <div key={l}>
-                  <dt className="sr-only">{l}</dt>
-                  <dd className="text-3xl font-semibold tabular-nums text-white">{v}</dd>
-                  <dd className="text-base text-white/45">{l}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
-          <EnclaveVisual />
+          <HeroPreview />
         </header>
 
-        <section id="how" className="flex scroll-mt-24 flex-col gap-8">
-          <div className="flex max-w-2xl flex-col gap-3">
-            <span className="font-mono text-base uppercase tracking-[0.2em] text-mint/80">How it works</span>
-            <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Trust, <span className="font-serif font-normal italic text-gradient">but verify.</span> Then argue.
-            </h2>
-          </div>
-          <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {PIPELINE.map((p) => (
-              <li key={p.n} className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-white/[0.08] bg-ink-1/70 p-6 transition hover:border-white/20">
-                <span aria-hidden className="absolute -right-3 -top-6 font-serif text-8xl italic text-white/[0.04] transition group-hover:text-white/[0.07]">
-                  {p.n}
-                </span>
-                <span className="w-fit rounded-md bg-white/[0.05] px-2 py-0.5 font-mono text-base text-white/55">{p.tag}</span>
-                <h3 className="text-lg font-semibold text-white">{p.title}</h3>
-                <p className="text-base leading-relaxed text-white/60">{p.body}</p>
+        <section aria-label="Checked on every review" className="-mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-[1.25rem] border border-line bg-line sm:-mt-16 lg:grid-cols-4">
+          {PROOF_STRIP.map(([t, d]) => (
+            <div key={t} className="flex flex-col gap-1 bg-card p-5 sm:p-6">
+              <span className="font-display text-xl font-semibold text-ink">{t}</span>
+              <span className="text-base text-muted">{d}</span>
+            </div>
+          ))}
+        </section>
+
+        <section className="flex flex-col gap-12">
+          <SectionHead
+            id="how"
+            eyebrow="How it works"
+            title={
+              <>
+                Four rounds. <em className="text-coral">One honest answer.</em>
+              </>
+            }
+            lede="Most AI review tools hand you a single model's opinion and ask you to trust where your code went. CodeCloak proves the second part and stress-tests the first."
+          />
+          <ol className="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+            {ROUNDS.map((r, i) => (
+              <li key={r.title} className="flex flex-col gap-3 border-t-2 border-ink pt-5">
+                <span className="font-display text-5xl font-semibold italic leading-none text-coral">{i + 1}</span>
+                <h3 className="font-display text-2xl font-semibold text-ink">{r.title}</h3>
+                <p className="text-base leading-relaxed text-ink-2">{r.body}</p>
               </li>
             ))}
           </ol>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(AGENT_META).map(([k, m]) => (
-              <span key={k} className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] px-3 py-1.5 text-base text-white/70">
-                <span className="h-2 w-2 rounded-full" style={{ background: m.color }} />
-                {m.label}
-                <span className="hidden text-white/35 sm:inline">· {m.lens}</span>
-              </span>
+        </section>
+
+        <section className="flex flex-col gap-12">
+          <SectionHead
+            id="swarm"
+            eyebrow="The swarm"
+            title={
+              <>
+                A swarm that <em className="text-coral">disagrees on purpose.</em>
+              </>
+            }
+            lede="Agreement is cheap. Each auditor has to defend its findings against the other two, and the disagreements stay on screen instead of being averaged away."
+          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(AGENT_META).map(([key, m]) => (
+              <Card key={key} as="article" className="flex flex-col gap-5 p-6">
+                <div className="flex items-center gap-3">
+                  <AgentInitial name={key} />
+                  <div>
+                    <h3 className="font-display text-2xl font-semibold leading-tight text-ink">{m.label}</h3>
+                    <p className="text-base text-muted">{m.role}</p>
+                  </div>
+                </div>
+                <p className="font-display text-xl italic leading-snug text-ink">&ldquo;{AGENT_QUESTIONS[key]}&rdquo;</p>
+                <p className="mt-auto border-t border-line pt-4 text-base text-ink-2">{m.lens}</p>
+              </Card>
             ))}
           </div>
         </section>
 
         <ReviewApp samples={samples} />
 
-        <section id="trust" className="flex scroll-mt-24 flex-col gap-8">
-          <div className="flex max-w-2xl flex-col gap-3">
-            <span className="font-mono text-base uppercase tracking-[0.2em] text-mint/80">Guarantees</span>
-            <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">What CodeCloak proves, and what it doesn&apos;t.</h2>
-            <p className="text-lg text-white/60">
-              Every run ends with a Verified panel and an honest scope note: reproducible images, model weights and TLS binding are listed as not
-              verified.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {GUARANTEES.map((g) => (
-              <div key={g.title} className="flex gap-4 rounded-2xl border border-white/[0.08] bg-ink-1/70 p-6">
-                <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-mint/10 text-mint ring-1 ring-mint/30">
-                  ✓
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  <h3 className="text-lg font-semibold text-white">{g.title}</h3>
-                  <p className="text-base leading-relaxed text-white/60">{g.body}</p>
+        <section className="flex flex-col gap-12">
+          <SectionHead
+            id="proof"
+            eyebrow="Proof, not promises"
+            title={
+              <>
+                What we prove, <em className="text-coral">and what we don&apos;t.</em>
+              </>
+            }
+            lede="Every review ends with a verification receipt. We would rather tell you the limits than sell you a badge."
+          />
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+            <Card className="grid grid-cols-1 gap-px overflow-hidden bg-line sm:grid-cols-2 [&>*]:bg-card">
+              {PROVEN.map(([t, d]) => (
+                <div key={t} className="flex flex-col gap-2 p-6">
+                  <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-full bg-ok text-base text-white">
+                    ✓
+                  </span>
+                  <h3 className="font-display text-xl font-semibold text-ink">{t}</h3>
+                  <p className="text-base leading-relaxed text-ink-2">{d}</p>
                 </div>
-              </div>
-            ))}
+              ))}
+            </Card>
+            <Card className="flex flex-col gap-4 bg-paper-2/60 p-6 sm:p-7">
+              <Eyebrow>Not verified here</Eyebrow>
+              <ul className="flex flex-col gap-3">
+                {NOT_VERIFIED.map((t) => (
+                  <li key={t} className="flex gap-3 text-base leading-relaxed text-ink-2">
+                    <span aria-hidden className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+        </section>
+
+        <section className="relative overflow-hidden rounded-[2rem] bg-ink px-6 py-14 text-center sm:px-12 sm:py-20">
+          <div aria-hidden className="glow-coral absolute -bottom-24 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full opacity-50" />
+          <div className="relative flex flex-col items-center gap-6">
+            <h2 className="font-display max-w-3xl text-[2.6rem] font-semibold leading-[1] text-paper sm:text-[4rem]">
+              Your code stays yours. <em className="text-coral">Prove it.</em>
+            </h2>
+            <p className="max-w-xl text-lg text-[#cfc6b8]">Run a review on a planted bug and open the receipt. It takes about a minute.</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <ButtonLink href="#review">Run a private review →</ButtonLink>
+              <a
+                href={REPO}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-full border border-paper/25 px-6 py-3.5 text-base font-semibold text-paper transition hover:border-paper/60"
+              >
+                Read the source
+              </a>
+            </div>
           </div>
         </section>
       </main>

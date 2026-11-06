@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 
 const TOKEN =
   /(\/\/[^\n]*|#[^\n]*|\/\*[\s\S]*?\*\/)|(`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|\b(import|from|export|default|const|let|var|function|async|await|return|if|else|for|while|throw|new|try|catch|class|extends|typeof|of|in|def|lambda|None|True|False|null|undefined|true|false)\b|\b(\d+(?:\.\d+)?)\b/g;
-const CLASS = ["text-white/35 italic", "text-[#b5f5c8]", "text-[#c4b5ff]", "text-[#ffc387]"];
+const CLASS = ["text-[#8f8577] italic", "text-[#f4c48a]", "text-[#ff8a75]", "text-[#9db8ff]"];
 
 function highlight(src: string) {
   const out: { text: string; cls?: string }[] = [];
@@ -25,35 +25,26 @@ export function CodeView({ files }: { files: { name: string; content: string }[]
   if (!file) return null;
   const lines = file.content.replace(/\n$/, "").split("\n").length;
   return (
-    <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-[#07080d]">
-      <div className="flex items-center gap-2 border-b border-white/[0.06] px-3">
-        <span aria-hidden className="flex gap-1.5 pr-2">
-          <span className="h-3 w-3 rounded-full bg-white/10" />
-          <span className="h-3 w-3 rounded-full bg-white/10" />
-          <span className="h-3 w-3 rounded-full bg-white/10" />
-        </span>
-        <div role="tablist" aria-label="Sample files" className="flex min-w-0 overflow-x-auto">
-          {files.map((f, i) => (
-            <button
-              key={f.name}
-              type="button"
-              role="tab"
-              aria-selected={i === active}
-              onClick={() => setActive(i)}
-              className={`shrink-0 border-b-2 px-3 py-2.5 font-mono text-base transition ${
-                i === active ? "border-mint text-white" : "border-transparent text-white/45 hover:text-white/80"
-              }`}
-            >
-              {f.name}
-            </button>
-          ))}
-        </div>
+    <div className="flex h-full max-h-[30rem] min-w-0 flex-col overflow-hidden rounded-2xl bg-ink lg:max-h-none">
+      <div role="tablist" aria-label="Sample files" className="flex min-w-0 gap-1 overflow-x-auto border-b border-white/10 px-3 pt-2">
+        {files.map((f, i) => (
+          <button
+            key={f.name}
+            type="button"
+            role="tab"
+            aria-selected={i === active}
+            onClick={() => setActive(i)}
+            className={`shrink-0 rounded-t-lg px-3.5 py-2 font-mono text-base transition ${i === active ? "bg-white/[0.08] text-[#f3eee6]" : "text-[#a79e90] hover:text-[#f3eee6]"}`}
+          >
+            {f.name}
+          </button>
+        ))}
       </div>
-      <div className="flex max-h-[26rem] overflow-auto font-mono text-base leading-7">
-        <pre aria-hidden className="sticky left-0 shrink-0 select-none bg-[#07080d] py-4 pl-4 pr-3 text-right text-white/20">
+      <div className="code-scroll flex min-h-[18rem] flex-1 overflow-auto font-mono text-base leading-7 lg:min-h-0">
+        <pre aria-hidden className="sticky left-0 shrink-0 select-none bg-ink py-4 pl-4 pr-3 text-right text-[#5d564c]">
           {Array.from({ length: lines }, (_, i) => i + 1).join("\n")}
         </pre>
-        <pre className="min-w-0 flex-1 py-4 pr-4 text-white/85">
+        <pre className="min-w-0 flex-1 py-4 pr-5 text-[#e9e1d4]">
           <code>
             {highlight(file.content).map((t, i) =>
               t.cls ? (

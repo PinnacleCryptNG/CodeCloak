@@ -1,14 +1,14 @@
 import type { AgentOutput, ChallengeVote, CompletionRecord } from "@/lib/types";
 import { agentMeta } from "./agents";
-import { AgentAvatar, Badge, Card, SeverityChip } from "./ui";
+import { AgentInitial, AgentTag, Card, RichText, SeverityChip, Status } from "./ui";
 
 export type ReceivedVote = ChallengeVote & { agent: string };
 
 export function SignatureBadge({ record }: { record?: CompletionRecord }) {
-  if (!record) return <Badge ok={false}>Not run</Badge>;
+  if (!record) return <Status ok={false}>Not run</Status>;
   const sig = record.signature;
-  if (sig?.status === "verified") return <Badge ok>Signed · {sig.signatureKind === "provider_tee" ? "model TEE" : "gateway"}</Badge>;
-  return <Badge ok={false}>Unverified{record.error ? ` · ${record.error}` : sig ? ` · ${sig.reason}` : ""}</Badge>;
+  if (sig?.status === "verified") return <Status ok>Signed · {sig.signatureKind === "provider_tee" ? "model TEE" : "gateway"}</Status>;
+  return <Status ok={false}>Unverified{record.error ? ` · ${record.error}` : sig ? ` · ${sig.reason}` : ""}</Status>;
 }
 
 export function AgentCard({
@@ -24,66 +24,65 @@ export function AgentCard({
 }) {
   const meta = agentMeta(name);
   return (
-    <Card className="anim-rise relative flex flex-col gap-4 overflow-hidden">
-      <span aria-hidden className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${meta.color}, transparent)` }} />
-      <header className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <AgentAvatar glyph={meta.glyph} color={meta.color} />
+    <Card as="article" className="anim-rise flex min-w-0 flex-col overflow-hidden">
+      <header className="flex flex-col gap-4 border-b border-line p-5 sm:p-6" style={{ background: `linear-gradient(180deg, ${meta.tint}, transparent)` }}>
+        <div className="flex items-start gap-3.5">
+          <AgentInitial name={name} />
           <div className="min-w-0">
-            <h3 className="text-lg font-semibold text-white">{meta.label} auditor</h3>
-            <p className="text-base text-white/50">{meta.lens}</p>
+            <h4 className="font-display text-2xl font-semibold leading-tight text-ink">{meta.label}</h4>
+            <p className="text-base text-ink-2">{meta.lens}</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <SignatureBadge record={record} />
-          {!output.error ? <span className="text-base text-white/45">{output.findings.length} findings</span> : null}
+          {!output.error ? (
+            <span className="text-base text-muted">
+              {output.findings.length} {output.findings.length === 1 ? "finding" : "findings"}
+            </span>
+          ) : null}
         </div>
       </header>
       {output.error ? (
-        <p className="text-base text-red-300">Auditor failed ({output.error}).</p>
+        <p className="p-5 text-base text-bad sm:p-6">Auditor failed ({output.error}).</p>
       ) : output.findings.length === 0 ? (
-        <p className="text-base text-white/60">{output.parseError ? "Reply could not be parsed." : "No findings in this lens."}</p>
+        <p className="p-5 text-base text-ink-2 sm:p-6">{output.parseError ? "Reply could not be parsed." : "No findings in this lens."}</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col divide-y divide-line">
           {output.findings.map((f) => {
             const received = votes.get(f.id) ?? [];
             const disputes = received.filter((v) => v.stance === "dispute").length;
             return (
-              <li key={f.id} className="rounded-xl border border-white/[0.07] bg-black/25 p-4">
+              <li key={f.id} className="flex flex-col gap-2.5 p-5 sm:p-6">
                 <div className="flex items-start gap-3">
                   <SeverityChip severity={f.severity} />
-                  <p className="font-medium leading-snug text-white">
-                    <span className="font-mono text-white/35">{f.id} </span>
-                    {f.title}
+                  <p className="min-w-0 font-semibold leading-snug text-ink">
+                    <span className="font-mono font-normal text-muted">{f.id} </span>
+                    <RichText text={f.title} />
                   </p>
                 </div>
                 {f.file || f.line_hint ? (
-                  <p className="mt-2 break-all font-mono text-base text-white/45">
+                  <p className="line-clamp-2 break-all font-mono text-base text-muted">
                     {f.file}
                     {f.line_hint ? ` · ${f.line_hint}` : ""}
                   </p>
                 ) : null}
-                <p className="mt-2 text-base leading-relaxed text-white/70">{f.detail}</p>
+                <p className="text-base leading-relaxed text-ink-2">
+                  <RichText text={f.detail} />
+                </p>
                 {received.length > 0 ? (
-                  <div className="mt-3 border-t border-white/[0.07] pt-3">
-                    <p className="mb-2 text-base text-white/40">
-                      Challenge: {received.length - disputes} back · <span className={disputes ? "text-amber-300" : ""}>{disputes} dispute</span>
+                  <div className="mt-1 flex flex-col gap-2.5 rounded-xl bg-paper/70 p-4">
+                    <p className="text-base font-medium text-ink">
+                      Challenge · {received.length - disputes} back, <span className={disputes ? "text-coral-deep" : ""}>{disputes} dispute</span>
                     </p>
-                    <ul className="flex flex-col gap-2">
-                      {received.map((v) => {
-                        const vm = agentMeta(v.agent);
-                        return (
-                          <li key={v.agent} className="flex gap-2 text-base">
-                            <span aria-hidden className="mt-2 h-2 w-2 shrink-0 rounded-full" style={{ background: vm.color }} />
-                            <span>
-                              <span className={v.stance === "dispute" ? "font-medium text-amber-300" : "font-medium text-emerald-300"}>
-                                {vm.label} {v.stance === "dispute" ? "disputes" : "backs"}:
-                              </span>{" "}
-                              <span className="text-white/65">{v.reason}</span>
-                            </span>
-                          </li>
-                        );
-                      })}
+                    <ul className="flex flex-col gap-2.5">
+                      {received.map((v) => (
+                        <li key={v.agent} className="flex flex-col items-start gap-1">
+                          <AgentTag name={v.agent} suffix={v.stance === "dispute" ? " disputes" : " backs"} />
+                          <span className="text-base text-ink-2">
+                            <RichText text={v.reason} />
+                          </span>
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 ) : null}
@@ -92,7 +91,7 @@ export function AgentCard({
           })}
         </ul>
       )}
-      {output.summary ? <p className="mt-auto border-t border-white/[0.06] pt-4 text-base leading-relaxed text-white/55">{output.summary}</p> : null}
+      {output.summary ? <p className="mt-auto border-t border-line bg-paper/50 p-5 text-base leading-relaxed text-ink-2 sm:px-6"><RichText text={output.summary} /></p> : null}
     </Card>
   );
 }

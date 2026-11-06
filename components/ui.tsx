@@ -1,112 +1,132 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { Severity } from "@/lib/types";
+import { agentMeta } from "./agents";
 
-export function Section({
-  title,
-  kicker,
-  eyebrow,
-  id,
-  children,
-}: {
-  title: string;
-  kicker?: ReactNode;
-  eyebrow?: string;
-  id?: string;
-  children: ReactNode;
-}) {
+export function Eyebrow({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <section id={id} className="flex scroll-mt-24 flex-col gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div className="flex flex-col gap-1.5">
-          {eyebrow ? <span className="font-mono text-base uppercase tracking-[0.2em] text-mint/80">{eyebrow}</span> : null}
-          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h2>
-        </div>
-        {kicker ? <span className="text-base text-white/50">{kicker}</span> : null}
-      </div>
+    <span className={`inline-flex items-center gap-2 font-mono text-base uppercase tracking-[0.14em] text-muted ${className}`}>
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-coral" />
       {children}
-    </section>
+    </span>
   );
 }
 
-export function Card({ children, className = "", style }: { children: ReactNode; className?: string; style?: React.CSSProperties }) {
+export function SectionHead({ eyebrow, title, lede, id, align = "left" }: { eyebrow: string; title: ReactNode; lede?: ReactNode; id?: string; align?: "left" | "center" }) {
   return (
-    <div
-      style={style}
-      className={`rounded-2xl border border-white/[0.08] bg-ink-1/80 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset,0_20px_60px_-30px_rgba(0,0,0,0.8)] backdrop-blur-sm sm:p-6 ${className}`}
-    >
-      {children}
+    <div id={id} className={`flex scroll-mt-28 flex-col gap-4 ${align === "center" ? "items-center text-center" : ""}`}>
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <h2 className="font-display max-w-3xl text-[2.4rem] font-semibold leading-[1.02] text-ink sm:text-[3.4rem]">{title}</h2>
+      {lede ? <p className="max-w-2xl text-lg leading-relaxed text-ink-2">{lede}</p> : null}
     </div>
+  );
+}
+
+export function Card({ children, className = "", style, as: Tag = "div" }: { children: ReactNode; className?: string; style?: CSSProperties; as?: "div" | "section" | "article" | "li" }) {
+  return (
+    <Tag style={style} className={`rounded-[1.25rem] border border-line bg-card shadow-[0_1px_0_rgba(22,19,15,0.04),0_12px_32px_-24px_rgba(22,19,15,0.35)] ${className}`}>
+      {children}
+    </Tag>
   );
 }
 
 const SEVERITY_STYLE: Record<Severity, string> = {
-  high: "bg-red-500/15 text-red-300 ring-red-400/30",
-  medium: "bg-amber-500/15 text-amber-200 ring-amber-400/30",
-  low: "bg-sky-500/15 text-sky-200 ring-sky-400/30",
-  info: "bg-white/10 text-white/70 ring-white/20",
+  high: "bg-[#fde3de] text-[#a42a18]",
+  medium: "bg-[#fbecd2] text-[#8a5200]",
+  low: "bg-[#e3e9fb] text-[#2443a3]",
+  info: "bg-paper-2 text-muted",
 };
 
 export function SeverityChip({ severity }: { severity: Severity }) {
+  return <span className={`inline-flex shrink-0 items-center rounded-md px-2 py-0.5 font-mono text-base font-medium uppercase ${SEVERITY_STYLE[severity]}`}>{severity}</span>;
+}
+
+export function Status({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-md px-2 py-0.5 font-mono text-base font-medium uppercase ring-1 ${SEVERITY_STYLE[severity]}`}>
-      {severity}
+    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-base font-medium ${ok ? "border-[#bfdcc9] bg-[#e6f2ea] text-ok" : "border-[#efc3bb] bg-[#fbe6e2] text-bad"}`}>
+      <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${ok ? "bg-ok" : "bg-bad"}`} />
+      <span className="min-w-0 truncate">{children}</span>
     </span>
   );
 }
 
-export function Badge({ ok, children }: { ok: boolean; children: ReactNode }) {
+/** Renders `inline code` spans from model text as code; everything else stays plain text. */
+export function RichText({ text }: { text: string }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-base font-medium ring-1 ${
-        ok ? "bg-emerald-500/10 text-emerald-300 ring-emerald-400/30" : "bg-red-500/15 text-red-300 ring-red-400/30"
-      }`}
-    >
-      <span aria-hidden className={`h-2 w-2 rounded-full ${ok ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-red-400"}`} />
-      {children}
-    </span>
+    <>
+      {text.split(/(`[^`\n]+`)/).map((part, i) =>
+        part.length > 2 && part.startsWith("`") && part.endsWith("`") ? (
+          <code key={i} className="rounded bg-paper-2 px-1 py-px font-mono text-ink">
+            {part.slice(1, -1)}
+          </code>
+        ) : (
+          part
+        ),
+      )}
+    </>
   );
 }
 
-export function Mono({ children }: { children: ReactNode }) {
-  return <code className="break-all font-mono text-base text-white/80">{children}</code>;
+export function Mono({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <code className={`break-all font-mono text-base text-ink-2 ${className}`}>{children}</code>;
 }
 
-/** Circular gauge; value 0–100, or null for "no value". */
-export function Ring({ value, size = 96, label }: { value: number | null; size?: number; label: string }) {
-  const r = 42;
-  const c = 2 * Math.PI * r;
+/** Half-circle gauge; value 0–100, or null for "no value". */
+export function Gauge({ value, label }: { value: number | null; label: string }) {
   const v = value ?? 0;
-  const color = value === null ? "#3a3f4b" : v >= 75 ? "#4ff0b8" : v >= 50 ? "#ffd166" : "#ff7a93";
+  const r = 52;
+  const len = Math.PI * r;
+  const color = value === null ? "var(--line)" : v >= 75 ? "var(--ok)" : v >= 50 ? "var(--warn)" : "var(--coral)";
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }} role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v}>
-      <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
-        <circle cx="50" cy="50" r={r} stroke="rgb(255 255 255 / 0.08)" strokeWidth="8" fill="none" />
-        <circle
-          cx="50"
-          cy="50"
-          r={r}
-          stroke={color}
-          strokeWidth="8"
+    <div className="relative w-44 shrink-0" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v}>
+      <svg viewBox="0 0 128 72" className="w-full" aria-hidden>
+        <path d="M12 66a52 52 0 0 1 104 0" fill="none" stroke="var(--paper-2)" strokeWidth="11" strokeLinecap="round" />
+        <path
+          d="M12 66a52 52 0 0 1 104 0"
           fill="none"
+          stroke={color}
+          strokeWidth="11"
           strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c - (c * v) / 100}
-          style={{ transition: "stroke-dashoffset 1s ease-out", filter: `drop-shadow(0 0 6px ${color}66)` }}
+          strokeDasharray={len}
+          strokeDashoffset={len - (len * v) / 100}
+          style={{ transition: "stroke-dashoffset 1s ease-out" }}
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-2xl font-semibold tabular-nums text-white">{value === null ? "—" : value}</span>
+      <span className="font-display absolute inset-x-0 bottom-0 text-center text-[2.6rem] font-semibold leading-none tabular-nums text-ink">
+        {value === null ? "—" : value}
+      </span>
     </div>
   );
 }
 
-export function AgentAvatar({ glyph, color, size = "h-10 w-10" }: { glyph: string; color: string; size?: string }) {
+export function AgentTag({ name, suffix }: { name: string; suffix?: ReactNode }) {
+  const m = agentMeta(name);
   return (
-    <span
-      aria-hidden
-      className={`flex ${size} shrink-0 items-center justify-center rounded-xl font-mono text-lg font-semibold`}
-      style={{ background: `${color}1f`, color, boxShadow: `inset 0 0 0 1px ${color}55, 0 0 24px -8px ${color}` }}
-    >
-      {glyph}
+    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-base font-medium" style={{ background: m.tint, color: m.color }}>
+      <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: m.color }} />
+      {m.label}
+      {suffix}
     </span>
+  );
+}
+
+export function AgentInitial({ name, size = "h-11 w-11 text-xl" }: { name: string; size?: string }) {
+  const m = agentMeta(name);
+  return (
+    <span aria-hidden className={`font-display flex ${size} shrink-0 items-center justify-center rounded-xl font-semibold`} style={{ background: m.color, color: name === "moderator" ? "var(--paper)" : "#fff" }}>
+      {m.label[0]}
+    </span>
+  );
+}
+
+export function ButtonLink({ href, children, variant = "primary", className = "" }: { href: string; children: ReactNode; variant?: "primary" | "ghost" | "ink"; className?: string }) {
+  const styles = {
+    primary: "bg-coral text-white hover:bg-coral-deep",
+    ink: "bg-ink text-paper hover:bg-ink-2",
+    ghost: "border border-ink/15 text-ink hover:border-ink/40 hover:bg-card",
+  }[variant];
+  return (
+    <a href={href} className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-base font-semibold transition ${styles} ${className}`}>
+      {children}
+    </a>
   );
 }
