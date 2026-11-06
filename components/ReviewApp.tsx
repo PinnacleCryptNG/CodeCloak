@@ -171,7 +171,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
 
         {failure ? (
           <div role="alert" className="rounded-2xl border border-red-400/40 bg-red-500/10 p-5">
-            <p className="font-semibold text-red-200">{ERROR_TEXT[failure.error] ?? `Review failed (${failure.error}).`}</p>
+            <p className="font-semibold text-red-200">{ERROR_TEXT[failure.error] ?? failure.message ?? `Review failed (${failure.error}).`}</p>
             {failure.checks?.length ? (
               <ul className="mt-3 flex flex-col gap-1">
                 {failure.checks.map((c, i) => (
