@@ -13,7 +13,13 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
   const kinds = [...new Set(verified.completions.map((c) => c.signature?.signatureKind ?? "unavailable"))];
   const signerMatches = verified.completions.filter((c) => c.signature?.signerMatchesPreflight).length;
-  const signers = new Set(verified.completions.map((c) => c.signature?.signingAddress?.toLowerCase()).filter(Boolean));
+  const signers = new Set(
+    verified.completions.flatMap((c) =>
+      c.signature?.status === "verified" && c.signature.signatureKind === "provider_tee" && c.signature.signingAddress
+        ? [c.signature.signingAddress.toLowerCase()]
+        : [],
+    ),
+  );
   const signingReports = verified.models.filter((m) => signers.has(m.signingAddress.toLowerCase()));
   const passed = verified.checks.filter((c) => c.ok).length;
   return (
