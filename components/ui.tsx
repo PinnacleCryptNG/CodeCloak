@@ -55,7 +55,7 @@ export function RichText({ text }: { text: string }) {
     <>
       {text.split(/(`[^`\n]+`)/).map((part, i) =>
         part.length > 2 && part.startsWith("`") && part.endsWith("`") ? (
-          <code key={i} className="rounded bg-paper-2 px-1 py-px font-mono text-ink">
+          <code key={i} className="rounded bg-paper-2 px-1 py-px font-mono text-[max(1rem,0.85em)] text-ink">
             {part.slice(1, -1)}
           </code>
         ) : (

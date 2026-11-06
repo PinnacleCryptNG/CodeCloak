@@ -108,7 +108,60 @@ body {
 }
 
 
+/* Hero scene: a 9 s loop — attest, report in, challenge, verdict. */
+@keyframes scene-attest {
+  0% { stroke-dashoffset: 100; }
+  12%, 100% { stroke-dashoffset: 0; }
+}
+@keyframes scene-chip {
+  0%, 10% { opacity: 0; transform: translate(260px, 128px); }
+  16%, 92% { opacity: 1; transform: translate(260px, 120px); }
+  100% { opacity: 0; transform: translate(260px, 120px); }
+}
+@keyframes scene-feed {
+  0%, 14% { opacity: 0; }
+  22%, 92% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes scene-challenge {
+  0%, 40% { opacity: 0; }
+  48%, 92% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes scene-verdict {
+  0%, 66% { opacity: 0; transform: translate(260px, 330px); }
+  74%, 92% { opacity: 1; transform: translate(260px, 318px); }
+  100% { opacity: 0; transform: translate(260px, 318px); }
+}
+@keyframes scene-ripple {
+  0% { transform: scale(0.85); opacity: 0.9; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+@keyframes scene-pulse {
+  0%, 100% { transform: scale(0.9); }
+  50% { transform: scale(1.1); }
+}
+.scene-attest { animation: scene-attest 9s ease-out infinite; }
+.scene-attest-chip { animation: scene-chip 9s ease-out infinite; }
+.scene-feed { animation: scene-feed 9s ease-out infinite; }
+.scene-challenge { animation: scene-challenge 9s ease-out infinite; }
+.scene-verdict { animation: scene-verdict 9s ease-out infinite; }
+.scene-ripple { animation: scene-ripple 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.scene-pulse { animation: scene-pulse 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
 @media (prefers-reduced-motion: reduce) {
+  .scene-attest,
+  .scene-attest-chip,
+  .scene-feed,
+  .scene-challenge,
+  .scene-verdict,
+  .scene-ripple,
+  .scene-pulse {
+    animation: none;
+  }
+  .scene-attest-chip { transform: translate(260px, 120px); }
+  .scene-verdict { transform: translate(260px, 318px); }
+
   html {
     scroll-behavior: auto;
   }

@@ -37,7 +37,7 @@ export async function renderOg() {
               <circle cx="44.5" cy="44.5" r="4.2" fill={PAPER} />
             </svg>
             <div style={{ display: "flex", fontFamily: "Fraunces", fontSize: 48, letterSpacing: -1 }}>
-              codecloak<span style={{ color: CORAL }}>.</span>
+              codecloak
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>

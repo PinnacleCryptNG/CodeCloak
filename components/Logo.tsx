@@ -17,7 +17,7 @@ export function Wordmark({ className = "" }: { className?: string }) {
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <LogoMark className="h-9 w-9" />
       <span className="font-display text-[1.6rem] font-semibold leading-none text-ink">
-        codecloak<span className="text-coral">.</span>
+        codecloak
       </span>
     </span>
   );

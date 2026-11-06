@@ -9,7 +9,7 @@ import { Steps, type Phase } from "./Steps";
 import { Card, Eyebrow, Gauge, RichText, SectionHead, Status } from "./ui";
 import { VerifiedPanel } from "./VerifiedPanel";
 
-export type SampleView = { id: string; label: string; files: { name: string; content: string }[] };
+export type SampleView = { id: string; title: string; tag: string; blurb: string; files: { name: string; content: string }[] };
 
 const MAX_PASTE_BYTES = 80 * 1024;
 const AUDITORS = ["security", "breaking", "quality"] as const;
@@ -70,7 +70,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
     setResult(null);
     setFailure(null);
     setPhase("verifying");
-    setSubject(mode === "demo" ? sampleId : "pasted code");
+    setSubject(mode === "demo" ? (sample?.title ?? sampleId) : "your code");
     const t0 = Date.now();
     setStartedAt(t0);
     setNow(t0);
@@ -173,24 +173,30 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
             </div>
 
             {mode === "demo" ? (
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-3 text-base font-medium text-ink">Pick a planted bug</legend>
+              <fieldset className="flex flex-col gap-2.5">
+                <legend className="mb-3 flex w-full items-baseline justify-between gap-3">
+                  <span className="text-base font-semibold text-ink">Choose a sample</span>
+                  <span className="text-base text-muted">All fictional</span>
+                </legend>
                 {samples.map((s) => {
                   const selected = s.id === sampleId;
                   return (
                     <label
                       key={s.id}
-                      className={`flex cursor-pointer items-center gap-3.5 rounded-2xl border px-4 py-3.5 transition ${
-                        selected ? "border-ink bg-paper/70" : "border-line hover:border-ink/30 hover:bg-paper/40"
+                      className={`flex cursor-pointer items-start gap-3.5 rounded-2xl border px-4 py-3.5 transition ${
+                        selected ? "border-ink bg-card shadow-[0_6px_18px_-12px_rgba(22,19,15,0.5)]" : "border-line hover:border-ink/30"
                       }`}
                     >
                       <input type="radio" name="sample" value={s.id} checked={selected} onChange={() => setSampleId(s.id)} className="sr-only" />
-                      <span aria-hidden className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${selected ? "border-coral" : "border-line"}`}>
+                      <span aria-hidden className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${selected ? "border-coral" : "border-line"}`}>
                         {selected ? <span className="h-2.5 w-2.5 rounded-full bg-coral" /> : null}
                       </span>
-                      <span className="flex min-w-0 flex-col">
-                        <span className="font-mono text-base font-medium text-ink">{s.id}</span>
-                        <span className="text-base text-muted">{s.label}</span>
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                          <span className="font-semibold text-ink">{s.title}</span>
+                          <span className="rounded-full bg-paper-2 px-2.5 py-0.5 text-base text-ink-2">{s.tag}</span>
+                        </span>
+                        <span className="text-base text-muted">{s.blurb}</span>
                       </span>
                     </label>
                   );
@@ -296,40 +302,43 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
           <section className="flex flex-col gap-6">
             <ResultHead
               eyebrow="Result"
-              title="The swarm's verdict"
+              title="The verdict"
               aside={<Status ok={result.verified.allSignaturesVerified}>{signed}/{result.verified.completions.length} responses signed</Status>}
             />
-            <Card className="anim-rise grid min-w-0 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-              <div className="flex flex-col items-center gap-4 border-b border-line p-6 text-center sm:p-8 lg:border-b-0 lg:border-r">
-                <span className="text-base font-medium text-muted">Swarm confidence</span>
-                <Gauge value={moderatorFailed ? null : moderator.confidence} label="Swarm confidence" />
-                <p className="max-w-xs text-base text-ink-2">
-                  {moderatorFailed ? "No ruling, so no confidence." : moderator.confidenceBasis ?? "Computed from the challenge votes, not taken from the model."}
-                </p>
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <dl className="grid grid-cols-3 border-b border-line">
-                  {[
-                    ["Findings", findingCount, "text-ink"],
-                    ["Disputes", moderator.disagreements.length, "text-warn"],
-                    ["Signed", `${signed}/${result.verified.completions.length}`, result.verified.allSignaturesVerified ? "text-ok" : "text-bad"],
-                  ].map(([label, value, tone]) => (
-                    <div key={label as string} className="flex min-w-0 flex-col gap-1 border-r border-line p-5 last:border-r-0 sm:p-6">
-                      <dt className="text-base text-muted">{label}</dt>
-                      <dd className={`font-display text-4xl font-semibold leading-none tabular-nums ${tone}`}>{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <div className="flex flex-1 flex-col gap-2 p-5 sm:p-6">
-                  <span className="text-base font-medium text-muted">Moderator summary</span>
-                  <p className="text-lg leading-relaxed text-ink">{moderatorFailed ? "The moderator gave no ruling for this run." : <RichText text={moderator.summary || "No summary given."} />}</p>
+            <Card className="anim-rise flex min-w-0 flex-col overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                <div className="flex min-w-0 flex-col gap-4 p-6 sm:p-8">
+                  <span className="text-base font-medium text-muted">What the swarm concluded</span>
+                  <p className="font-display text-xl font-normal leading-relaxed text-ink sm:text-2xl sm:leading-snug">
+                    {moderatorFailed ? "The moderator gave no ruling for this run." : <RichText text={moderator.summary || "No summary given."} />}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-3 border-t border-line bg-paper/50 p-6 text-center lg:border-l lg:border-t-0">
+                  <span className="text-base font-medium text-muted">Swarm confidence</span>
+                  <Gauge value={moderatorFailed ? null : moderator.confidence} label="Swarm confidence" />
+                  <p className="text-base text-ink-2">
+                    {moderatorFailed ? "No ruling, so no confidence." : moderator.confidenceBasis ?? "Computed from the challenge votes, not taken from the model."}
+                  </p>
                 </div>
               </div>
+              <dl className="grid grid-cols-2 gap-px border-t border-line bg-line sm:grid-cols-4 [&>*]:bg-card">
+                {[
+                  ["Findings", findingCount, "text-ink"],
+                  ["Disagreements", moderator.disagreements.length, "text-warn"],
+                  ["Agreed", moderator.consensus.length, "text-ink"],
+                  ["Signed", `${signed}/${result.verified.completions.length}`, result.verified.allSignaturesVerified ? "text-ok" : "text-bad"],
+                ].map(([label, value, tone]) => (
+                  <div key={label as string} className="flex min-w-0 flex-col gap-1.5 px-6 py-5">
+                    <dt className="text-base text-muted">{label}</dt>
+                    <dd className={`font-display text-4xl font-semibold leading-none tabular-nums ${tone}`}>{value}</dd>
+                  </div>
+                ))}
+              </dl>
             </Card>
           </section>
 
           <section className="flex flex-col gap-6">
-            <ResultHead eyebrow="Rounds 1 + 2" title="Three auditors, then a challenge" />
+            <ResultHead eyebrow="Rounds 1 & 2" title="Each auditor's findings" aside={<span className="text-base text-muted">Tap a finding to see the votes</span>} />
             <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
               {AUDITORS.map((a) => (
                 <AgentCard key={a} name={a} output={result.agents[a]} record={recordFor(a, "audit")} votes={votesByFinding} />
@@ -357,7 +366,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
           </section>
 
           <section className="flex flex-col gap-6">
-            <ResultHead eyebrow="Proof" title="How you know it was private" />
+            <ResultHead eyebrow="Proof" title="Proof it ran privately" />
             <VerifiedPanel verified={result.verified} />
           </section>
         </div>
