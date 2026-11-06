@@ -82,7 +82,7 @@ export function AgentCard({
                   <summary className="flex cursor-pointer list-none flex-col gap-2 px-5 py-4 transition hover:bg-paper/50 sm:px-6 [&::-webkit-details-marker]:hidden">
                     <span className="flex items-start gap-3">
                       <SeverityChip severity={f.severity} />
-                      <span className="line-clamp-2 min-w-0 flex-1 font-semibold leading-snug text-ink">
+                      <span className="line-clamp-2 min-w-0 flex-1 font-semibold leading-snug text-ink group-open:line-clamp-none">
                         <RichText text={f.title} />
                       </span>
                       <span aria-hidden className="mt-0.5 shrink-0 text-lg leading-none text-muted transition group-open:rotate-45">
@@ -126,7 +126,7 @@ export function AgentCard({
 
       <footer className="mt-auto flex flex-col gap-3 border-t border-line px-5 py-4 sm:px-6">
         {output.summary ? (
-          <p className="line-clamp-3 text-base leading-relaxed text-muted">
+          <p className="text-base leading-relaxed text-muted">
             <RichText text={output.summary} />
           </p>
         ) : null}

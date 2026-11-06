@@ -159,6 +159,8 @@ body {
   .scene-pulse {
     animation: none;
   }
+  /* SMIL motion ignores CSS animation rules, so hide the moving particles instead. */
+  .scene-particle { display: none; }
   .scene-attest-chip { transform: translate(260px, 120px); }
   .scene-verdict { transform: translate(260px, 318px); }
 

@@ -63,7 +63,7 @@ export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutp
                   <details className="group">
                     <summary className={row}>
                       <span className="flex items-start gap-3">
-                        <span className="line-clamp-2 min-w-0 flex-1 font-semibold leading-snug text-ink">
+                        <span className="line-clamp-2 min-w-0 flex-1 font-semibold leading-snug text-ink group-open:line-clamp-none">
                           <RichText text={d.topic} />
                         </span>
                         <span aria-hidden className="mt-0.5 shrink-0 text-lg leading-none text-muted transition group-open:rotate-45">
@@ -101,7 +101,7 @@ export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutp
                     <summary className={row}>
                       <span className="flex items-start gap-3">
                         <SeverityChip severity={c.severity} />
-                        <span className="line-clamp-2 min-w-0 flex-1 font-semibold leading-snug text-ink">
+                        <span className="line-clamp-2 min-w-0 flex-1 font-semibold leading-snug text-ink group-open:line-clamp-none">
                           <RichText text={c.title} />
                         </span>
                         <span aria-hidden className="mt-0.5 shrink-0 text-lg leading-none text-muted transition group-open:rotate-45">

@@ -31,7 +31,7 @@ export function HeroScene() {
         {ARCS.map((a, i) => (
           <g key={a.d} className="scene-challenge" style={{ animationDelay: `${i * 0.25}s` }}>
             <path d={a.d} fill="none" stroke="#16130f" strokeOpacity="0.35" strokeWidth="2" strokeDasharray="2 7" strokeLinecap="round" />
-            <circle r="5" fill={a.chip.ok ? "#1d7a4a" : "#ff4f3a"}>
+            <circle r="5" fill={a.chip.ok ? "#1d7a4a" : "#ff4f3a"} className="scene-particle">
               <animateMotion dur="2.4s" repeatCount="indefinite" path={a.d} begin={`${i * 0.4}s`} />
             </circle>
             <g transform={`translate(${a.chip.x} ${a.chip.y})`}>
@@ -46,7 +46,7 @@ export function HeroScene() {
         {FEED.map((d, i) => (
           <g key={d} className="scene-feed">
             <path d={d} fill="none" stroke={NODES[i].color} strokeOpacity="0.55" strokeWidth="2.5" strokeLinecap="round" />
-            <circle r="5.5" fill={NODES[i].color}>
+            <circle r="5.5" fill={NODES[i].color} className="scene-particle">
               <animateMotion dur="1.8s" repeatCount="indefinite" path={d} begin={`${i * 0.3}s`} />
             </circle>
           </g>
