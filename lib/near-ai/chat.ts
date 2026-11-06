@@ -62,7 +62,16 @@ export async function chatCompletion(
   deps: ChatDeps = {},
 ): Promise<Completion> {
   const apiKey = getApiKey(deps.env);
-  const requestBody = JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.2, stream: false });
+  // Qwen3 reasoning otherwise spends the whole max_tokens budget before any answer (observed live: content null,
+  // finish_reason "length"). The flag is part of the hashed request bytes, so signature binding is unchanged.
+  const requestBody = JSON.stringify({
+    model,
+    messages,
+    max_tokens: maxTokens,
+    temperature: 0.2,
+    stream: false,
+    chat_template_kwargs: { enable_thinking: false },
+  });
   let response: Response;
   try {
     response = await (deps.fetch ?? fetch)(`${NEARAI_BASE_URL}/chat/completions`, {
