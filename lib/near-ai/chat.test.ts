@@ -37,6 +37,7 @@ test("chatCompletion: non-streaming, x-no-aliasing, hashes exact bytes", async (
   const body = JSON.parse(String(sent!.init.body));
   assert.equal(body.stream, false);
   assert.equal(body.model, MODEL);
+  assert.deepEqual(body.chat_template_kwargs, { enable_thinking: false });
   assert.equal(c.requestHash, sha(String(sent!.init.body)));
   assert.equal(c.responseHash, sha(responseText));
   assert.equal(c.chatId, "chatcmpl-1");
