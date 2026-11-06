@@ -11,7 +11,10 @@
  */
 import { createHash } from "node:crypto";
 import { verifyMessage } from "ethers";
+import { SEVERITIES, type AgentOutput, type Finding, type Severity, type SignatureVerification } from "../types";
 import { getApiKey, NEARAI_BASE_URL, type VerifiedAttestation } from "./attestation";
+
+export type { AgentOutput, Finding, SignatureVerification };
 
 if (typeof window !== "undefined") {
   throw new Error("lib/near-ai/chat is server-only");
@@ -145,16 +148,6 @@ export async function fetchSignature(
   return null;
 }
 
-export type SignatureVerification = {
-  status: "verified" | "unverified";
-  reason: string;
-  signatureKind: "provider_tee" | "gateway" | "unavailable";
-  signingAddress: string | null;
-  signerMatchesPreflight: boolean;
-  requestHash: string;
-  responseHash: string;
-};
-
 /**
  * Recover the EIP-191 signer, check the signed text against our own hashes, and require the signer
  * to match a report verified BEFORE the completion (provider_tee → exactly one model report;
@@ -198,24 +191,26 @@ export function verifySignature(
   return { ...base, status: "verified", reason: "ok", signatureKind: kind, signingAddress: address, signerMatchesPreflight: true };
 }
 
-export const SEVERITIES = ["high", "medium", "low", "info"] as const;
-export type Severity = (typeof SEVERITIES)[number];
-export type Finding = { id: string; severity: Severity; title: string; file: string; line_hint: string; detail: string };
-export type AgentOutput = { agent: string; findings: Finding[]; summary: string; parseError?: true };
+export const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
 
-const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
-
-/** Extract the agent JSON from model text (tolerates <think> blocks and ``` fences); never throws. */
-export function parseAgentOutput(agent: string, content: string): AgentOutput {
+/** Extract the first JSON object from model text (tolerates <think> blocks and ``` fences); null if none. */
+export function extractJson(content: string): Record<string, unknown> | null {
   const cleaned = content.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/```(?:json)?/g, "");
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  let raw: { findings?: unknown; summary?: unknown };
+  if (start < 0 || end < start) return null;
   try {
-    raw = JSON.parse(cleaned.slice(start, end + 1));
+    const value = JSON.parse(cleaned.slice(start, end + 1));
+    return value && typeof value === "object" && !Array.isArray(value) ? value : null;
   } catch {
-    return { agent, findings: [], summary: "", parseError: true };
+    return null;
   }
+}
+
+/** Validate an auditor's JSON (SPEC.md D "Agent output JSON"); never throws. */
+export function parseAgentOutput(agent: string, content: string): AgentOutput {
+  const raw = extractJson(content);
+  if (!raw) return { agent, findings: [], summary: "", parseError: true };
   const findings = (Array.isArray(raw.findings) ? raw.findings : []).slice(0, 12).map((f: Record<string, unknown>, i): Finding => ({
     id: str(f?.id, 16) || `${agent[0].toUpperCase()}${i + 1}`,
     severity: (SEVERITIES as readonly string[]).includes(f?.severity as string) ? (f.severity as Severity) : "info",
