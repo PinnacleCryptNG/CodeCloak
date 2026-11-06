@@ -107,6 +107,39 @@ export function parseModeratorOutput(content: string): ModeratorOutput {
   return { agent: "moderator", consensus, disagreements, confidence, summary: str(raw.summary, 1200) };
 }
 
+const SEVERITY_WEIGHT: Record<Severity, number> = { high: 3, medium: 2, low: 1, info: 0.5 };
+
+/**
+ * Swarm confidence from the challenge votes, not the moderator's guess: for each finding, the share of the other
+ * auditors that backed it (disputes and missing votes count against), weighted by severity, then scaled by the
+ * share of auditors that ran. Three clean audits with no findings score 100.
+ */
+export function swarmConfidence(audits: (AgentOutput & { error?: string })[], challenges: ChallengeOutput[]): { confidence: number; basis: string } {
+  const ran = audits.filter((a) => !a.error && !a.parseError).length;
+  let weight = 0;
+  let support = 0;
+  let backs = 0;
+  let total = 0;
+  for (const audit of audits) {
+    for (const f of audit.findings) {
+      const voters = challenges.filter((c) => c.agent !== audit.agent);
+      const b = voters.filter((c) => c.votes.some((v) => v.finding_id === f.id && v.stance === "back")).length;
+      const w = SEVERITY_WEIGHT[f.severity] ?? 1;
+      weight += w;
+      support += w * (voters.length ? b / voters.length : 0);
+      backs += b;
+      total += voters.length;
+    }
+  }
+  const agreement = weight ? support / weight : 1;
+  const confidence = Math.round(100 * agreement * (ran / AUDITORS.length));
+  const runNote = ran < AUDITORS.length ? `; only ${ran} of ${AUDITORS.length} auditors ran` : "";
+  const basis = total
+    ? `${backs} of ${total} challenge votes back the findings (severity-weighted)${runNote}`
+    : `no findings to challenge${runNote}`;
+  return { confidence, basis };
+}
+
 /** Every finding with at least one dispute, with each involved auditor's position, from the raw votes. */
 export function contestedFindings(audits: AgentOutput[], challenges: ChallengeOutput[]): Disagreement[] {
   const out: Disagreement[] = [];
@@ -182,6 +215,9 @@ export async function runSwarm(
       ? { agent: "moderator", consensus: [], disagreements: [], confidence: 0, summary: "", error: mod.record.error }
       : parseModeratorOutput(mod.content);
   parsed.disagreements = mergeDisagreements(parsed.disagreements, contested);
+  const { confidence, basis } = swarmConfidence(audits, challenges);
+  parsed.confidence = confidence;
+  parsed.confidenceBasis = basis;
 
   const completions = [
     ...round1.map((r) => r.record),

@@ -23,6 +23,7 @@ export function ConsensusPanel({ moderator, record }: { moderator: ModeratorOutp
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={confidence} aria-label="Swarm confidence">
           <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-emerald-400" style={{ width: `${confidence}%` }} />
         </div>
+        {!failed && moderator.confidenceBasis ? <p className="mt-2 text-base text-white/50">{moderator.confidenceBasis}</p> : null}
       </div>
 
       {failed ? (
