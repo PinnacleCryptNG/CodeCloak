@@ -73,7 +73,12 @@ export function parseChallengeOutput(agent: string, content: string, allowedIds:
     const finding_id = str(v?.finding_id, 16);
     // Only exact stances count; an unreadable stance is never treated as agreement.
     if (!allowedIds.has(finding_id) || (v?.stance !== "back" && v?.stance !== "dispute")) continue;
-    if (votes.some((x) => x.finding_id === finding_id)) continue;
+    const prior = votes.find((x) => x.finding_id === finding_id);
+    if (prior) {
+      // Conflicting duplicates resolve to dispute so dissent can never be hidden by an earlier "back".
+      if (prior.stance === "back" && v.stance === "dispute") Object.assign(prior, { stance: "dispute", reason: `conflicting votes; dispute: ${str(v?.reason, 360)}` });
+      continue;
+    }
     votes.push({ finding_id, stance: v.stance, reason: str(v?.reason, 400) });
   }
   const missing = [...allowedIds].filter((id) => !votes.some((v) => v.finding_id === id));
