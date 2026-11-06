@@ -133,8 +133,8 @@ export function ReceiptOnView({ perf }: { perf?: string }) {
     const el = ref.current;
     if (!el) return;
     if (!("IntersectionObserver" in window)) {
-      setSeen(true);
-      return;
+      const raf = requestAnimationFrame(() => setSeen(true));
+      return () => cancelAnimationFrame(raf);
     }
     const io = new IntersectionObserver(([e]) => {
       if (e.isIntersecting) {
