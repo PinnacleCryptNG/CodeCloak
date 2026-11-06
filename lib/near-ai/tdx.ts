@@ -11,6 +11,10 @@ export type VerifiedQuote = {
   advisoryIds: string[];
   tdAttributes: string;
   reportData: string;
+  mrTd: string;
+  rtMr0: string;
+  rtMr1: string;
+  rtMr2: string;
   mrConfigId: string;
   rtMr3: string;
 };
@@ -46,6 +50,10 @@ export async function verifyQuoteWithDcap(
     advisoryIds: Array.isArray(result.advisory_ids) ? result.advisory_ids.map(String) : [],
     tdAttributes: String(td10.td_attributes ?? ""),
     reportData: String(td10.report_data ?? ""),
+    mrTd: String(td10.mr_td ?? ""),
+    rtMr0: String(td10.rt_mr0 ?? ""),
+    rtMr1: String(td10.rt_mr1 ?? ""),
+    rtMr2: String(td10.rt_mr2 ?? ""),
     mrConfigId: String(td10.mr_config_id ?? ""),
     rtMr3: String(td10.rt_mr3 ?? ""),
   };
@@ -116,6 +124,14 @@ export function readAppCompose(info: unknown): string {
 export function expectedMrConfigId(appCompose: string): Buffer {
   const hash = createHash("sha256").update(appCompose, "utf8").digest();
   return Buffer.concat([Buffer.from([1]), hash, Buffer.alloc(15)]);
+}
+
+// NEAR model composes differ per GPU host only by this label; it is masked so one pin covers every host.
+const INSTANCE_LABEL_RE = /INSTANCE_LABEL=[A-Za-z0-9_-]{1,64}(?=\\)/g;
+
+/** SHA-256 of the raw app_compose with INSTANCE_LABEL values masked. Every other byte is pinned exactly. */
+export function composeTemplateHash(appCompose: string): string {
+  return createHash("sha256").update(appCompose.replace(INSTANCE_LABEL_RE, "INSTANCE_LABEL=*"), "utf8").digest("hex");
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {

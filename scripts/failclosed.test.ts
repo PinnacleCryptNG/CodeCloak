@@ -12,18 +12,23 @@ import path from "node:path";
 import { afterEach, beforeEach, test } from "node:test";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { NVIDIA_ISSUER, NVIDIA_NRAS_URL, type RawReport } from "../lib/near-ai/attestation";
+import { TRUSTED_MEASUREMENTS_ENV } from "../lib/near-ai/measurements";
 import { expectedMrConfigId, replayRtmr3, type VerifiedQuote } from "../lib/near-ai/tdx";
 import { createRateLimiter } from "../lib/rate-limit";
 import { handleReview } from "../lib/review/handler";
 
 const MODEL = "Qwen/Qwen3.8-27B";
 const KEY = "sk-failclosed-test-key";
-const ENV = { NEARAI_API_KEY: KEY };
+const OS = { mrTd: "a1".repeat(48), rtMr0: "a2".repeat(48), rtMr1: "a3".repeat(48), rtMr2: "a4".repeat(48) };
 const SENTINEL = "FAILCLOSED_SENTINEL_7f3a";
 const CODE = `export const token = "${SENTINEL}"; // fictional`;
 const GATEWAY_ADDR = "0x" + "11".repeat(20);
 const MODEL_ADDR = "0x" + "22".repeat(20);
 const APP_COMPOSE = '{"docker_compose_file":"services: {}"}';
+const COMPOSE_HASH = createHash("sha256").update(APP_COMPOSE).digest("hex");
+const TRUSTED = { gateway: { os: [OS], composeTemplates: [COMPOSE_HASH] }, model: { os: [OS], composeTemplates: [COMPOSE_HASH] } };
+const ENV = { NEARAI_API_KEY: KEY, [TRUSTED_MEASUREMENTS_ENV]: JSON.stringify(TRUSTED) };
+const LOGGING_COMPOSE = '{"docker_compose_file":"services: {prompt-logger: {}}"}';
 
 function runtimeEvent(event: string, payloadHex: string) {
   const type = Buffer.alloc(4);
@@ -101,6 +106,7 @@ async function harness(s: Scenario) {
       reportData: quoteHex + "00".repeat(12) + nonce,
       mrConfigId: expectedMrConfigId(APP_COMPOSE).toString("hex"),
       rtMr3: replayRtmr3(EVENT_LOG).toString("hex"),
+      ...OS,
       ...s.quote,
     };
   };
@@ -150,6 +156,18 @@ const scenarios: [string, Scenario][] = [
   ["MRCONFIGID / app compose mismatch", { mutate: (b) => (b.model_attestations[0].info = { tcb_info: { app_compose: "tampered" } }) }],
   ["NVIDIA payload nonce mismatch", { mutate: (b) => (b.model_attestations[0].nvidia_payload = JSON.stringify({ nonce: WRONG })) }],
   ["NVIDIA verdict false", { gpuVerdict: false }],
+  ["model report without nvidia_payload", { mutate: (b) => delete b.model_attestations[0].nvidia_payload }],
+  ["MRTD not on the allowlist", { quote: { mrTd: "ee".repeat(48) } }],
+  ["RTMR0 not on the allowlist", { quote: { rtMr0: "ee".repeat(48) } }],
+  ["RTMR1 not on the allowlist", { quote: { rtMr1: "ee".repeat(48) } }],
+  ["RTMR2 not on the allowlist", { quote: { rtMr2: "ee".repeat(48) } }],
+  [
+    "self-consistent compose hash not on the allowlist",
+    {
+      mutate: (b) => (b.gateway_attestation.info = { tcb_info: { app_compose: LOGGING_COMPOSE } }),
+      quote: { mrConfigId: expectedMrConfigId(LOGGING_COMPOSE).toString("hex") },
+    },
+  ],
 ];
 for (const [name, s] of scenarios) test(`fail closed: ${name}`, () => expectFailClosed(s));
 
