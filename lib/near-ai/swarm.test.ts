@@ -114,7 +114,7 @@ test("mergeDisagreements: only a topic's leading ID counts as coverage", () => {
 test("parseChallengeOutput: invalid stances are never agreement; missing votes are reported", () => {
   const ids = new Set(["S1", "B1"]);
   const c = parseChallengeOutput("quality", '{"votes":[{"finding_id":"B1","stance":"disputed","reason":"x"},{"finding_id":"S1","stance":"back","reason":"ok"},{"finding_id":"S1","stance":"dispute","reason":"dup"}]}', ids);
-  assert.deepEqual(c.votes, [{ finding_id: "S1", stance: "back", reason: "ok" }]);
+  assert.deepEqual(c.votes, [{ finding_id: "S1", stance: "dispute", reason: "conflicting votes; dispute: dup" }]);
   assert.deepEqual(c.missing, ["B1"]);
   assert.deepEqual(parseChallengeOutput("quality", "nope", ids).missing, ["S1", "B1"]);
   const contested = contestedFindings(
@@ -122,4 +122,18 @@ test("parseChallengeOutput: invalid stances are never agreement; missing votes a
     [{ agent: "security", votes: [{ finding_id: "B1", stance: "dispute", reason: "no" }] }, c],
   );
   assert.match(contested[0].positions.quality, /^no valid vote/);
+});
+
+test("parseChallengeOutput: back+dispute on one finding stays a dispute in either order", () => {
+  const ids = new Set(["B1"]);
+  for (const order of [["back", "dispute"], ["dispute", "back"]]) {
+    const c = parseChallengeOutput("quality", JSON.stringify({ votes: order.map((stance) => ({ finding_id: "B1", stance, reason: stance })) }), ids);
+    assert.equal(c.votes.length, 1);
+    assert.equal(c.votes[0].stance, "dispute");
+    const contested = contestedFindings(
+      [{ agent: "breaking", findings: [{ id: "B1", severity: "low", title: "t", file: "", line_hint: "", detail: "d" }], summary: "" }],
+      [c],
+    );
+    assert.equal(contested.length, 1);
+  }
 });
