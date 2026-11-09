@@ -6,6 +6,7 @@ export const REPO = "https://github.com/PinnacleCryptNG/CodeCloak";
 
 const LINKS = [
   ["/#how", "How it works"],
+  ["/#near", "On NEAR"],
   ["/#swarm", "The swarm"],
   ["/#review", "Live demo"],
   ["/#proof", "Receipt"],

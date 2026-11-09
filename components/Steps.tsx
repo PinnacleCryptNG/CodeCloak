@@ -1,9 +1,9 @@
 export type Phase = "idle" | "verifying" | "auditors" | "challenge" | "moderator" | "done" | "error";
 
 const STEPS = [
-  { key: "verifying", label: "Verifying enclave…", detail: "Intel TDX, NVIDIA GPU, fresh nonce" },
-  { key: "auditors", label: "Auditors running…", detail: "Three lenses in parallel, then the challenge round" },
-  { key: "moderator", label: "Moderator reconciling…", detail: "Ruling, disagreements, signature checks" },
+  { key: "verifying", label: "Attesting NEAR AI Cloud…", detail: "Gateway + model enclave: Intel TDX, NVIDIA GPU, fresh nonce" },
+  { key: "auditors", label: "Auditors on NEAR AI Cloud…", detail: "Three confidential calls in parallel, then the challenge round" },
+  { key: "moderator", label: "Moderator on NEAR AI Cloud…", detail: "Ruling, then every response signature checked" },
 ] as const;
 
 function stepIndex(phase: Phase): number {
@@ -13,7 +13,7 @@ function stepIndex(phase: Phase): number {
   return phase === "done" ? 3 : -1;
 }
 
-export function Steps({ phase, elapsed, subject }: { phase: Phase; elapsed?: number; subject?: string }) {
+export function Steps({ phase, elapsed, subject, nearCalls }: { phase: Phase; elapsed?: number; subject?: string; nearCalls?: number }) {
   const current = stepIndex(phase);
   return (
     <div className="flex flex-col gap-5" aria-live="polite">
@@ -24,6 +24,11 @@ export function Steps({ phase, elapsed, subject }: { phase: Phase; elapsed?: num
         </p>
         {elapsed !== undefined ? <span className="font-mono text-lg tabular-nums text-ink-2">{(elapsed / 1000).toFixed(1)}s</span> : null}
       </div>
+      <p className="flex flex-wrap items-center gap-2 font-mono text-base text-muted">
+        <span aria-hidden className={`h-2 w-2 rounded-full ${phase === "done" ? "bg-ok" : "anim-pulse bg-coral"}`} />
+        cloud-api.near.ai
+        {nearCalls !== undefined ? <span className="text-ink-2">· {nearCalls} NEAR AI Cloud calls, all attested or signed</span> : <span>· confidential inference in progress</span>}
+      </p>
       <ol className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {STEPS.map((step, i) => {
           const state = i < current ? "done" : i === current ? "active" : "pending";

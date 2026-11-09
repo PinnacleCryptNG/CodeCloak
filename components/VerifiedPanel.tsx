@@ -5,13 +5,16 @@ import { VerifierScope } from "./VerifierScope";
 
 const short = (hex: string) => (hex.length > 20 ? `${hex.slice(0, 10)}…${hex.slice(-6)}` : hex);
 
-function Check({ ok, label, value }: { ok: boolean; label: string; value: string }) {
+function Check({ ok, label, scope, value }: { ok: boolean; label: string; scope: string; value: string }) {
   return (
     <li className="flex items-center gap-3 py-3">
       <span aria-hidden className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-base leading-none text-paper ${ok ? "bg-ok" : "bg-bad"}`}>
         {ok ? "✓" : "✗"}
       </span>
-      <span className="shrink-0 font-medium text-ink">{label}</span>
+      <span className="flex shrink-0 flex-col">
+        <span className="font-medium text-ink">{label}</span>
+        <span className="text-base text-muted">{scope}</span>
+      </span>
       <span aria-hidden className="min-w-4 flex-1 translate-y-1 border-b-2 border-dotted border-line" />
       <span className={`shrink-0 font-mono text-base tabular-nums ${ok ? "text-ink" : "text-bad"}`}>{value}</span>
     </li>
@@ -56,7 +59,7 @@ export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
       <header className="flex flex-col gap-3 px-5 pb-4 pt-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex flex-col gap-1">
           <h4 className="text-2xl font-semibold leading-none text-ink">Verification receipt</h4>
-          <p className="text-base text-muted">Checked on the server before your code left it · {new Date(verified.verifiedAt).toLocaleString()}</p>
+          <p className="text-base text-muted">Verified against NEAR AI Cloud before your code left our server · {new Date(verified.verifiedAt).toLocaleString()}</p>
         </div>
         <Status ok={verified.allSignaturesVerified}>{verified.allSignaturesVerified ? "Attested · every response signed" : "Attested · some responses unverified"}</Status>
       </header>
@@ -64,10 +67,10 @@ export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:divide-x lg:divide-line">
         <ul className="flex flex-col divide-y divide-line px-5 py-2 sm:px-6">
-          <Check ok={passed === verified.checks.length} label="Intel TDX quotes" value={`${passed}/${verified.checks.length}`} />
-          <Check ok={nvidiaOk} label="NVIDIA GPU" value={nvidiaOk ? "verified" : "no"} />
-          <Check ok={signerMatches === total} label="Signer attested" value={`${signerMatches}/${total}`} />
-          <Check ok={verified.allSignaturesVerified} label="Response signatures" value={`${signedCount}/${total}`} />
+          <Check ok={passed === verified.checks.length} label="Intel TDX quotes" scope="NEAR gateway + model enclave" value={`${passed}/${verified.checks.length}`} />
+          <Check ok={nvidiaOk} label="NVIDIA GPU" scope="NEAR model enclave GPUs" value={nvidiaOk ? "verified" : "no"} />
+          <Check ok={signerMatches === total} label="Signer attested" scope="NEAR enclave signing key" value={`${signerMatches}/${total}`} />
+          <Check ok={verified.allSignaturesVerified} label="Response signatures" scope="NEAR /v1/signature, per response" value={`${signedCount}/${total}`} />
         </ul>
         <dl className="grid grid-cols-1 gap-4 border-t border-line bg-paper/50 px-5 py-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-1 lg:border-t-0">
           <Fact label="Model">
@@ -115,8 +118,8 @@ export function VerifiedPanel({ verified }: { verified: VerifiedPayload }) {
                 {signerMatches}/{total} responses match a preflight report
               </Row>
               <Row label="Intel TDX">
-                gateway {verified.gateway.tcbStatus}
-                {verified.models.map((m, i) => ` · model[${i}] ${m.tcbStatus}`).join("")} · {passed}/{verified.checks.length} checks passed
+                NEAR gateway {verified.gateway.tcbStatus}
+                {verified.models.map((m, i) => ` · NEAR model enclave[${i}] ${m.tcbStatus}`).join("")} · {passed}/{verified.checks.length} checks passed
               </Row>
               <Row label="NVIDIA GPU">{verified.models.map((m) => (m.nvidia === "verified" ? "NRAS verdict verified" : "no GPU evidence")).join(", ") || "—"}</Row>
               <Row label="Model signer">

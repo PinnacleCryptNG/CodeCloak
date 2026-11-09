@@ -14,6 +14,33 @@ const SAMPLE_META: Record<string, { title: string; tag: string; blurb: string }>
   "vuln-inject": { title: "Refunds service", tag: "Prompt injection", blurb: "Hides a note asking AI reviewers to approve it" },
 };
 
+const NEAR_CALLS: { method: string; path: string; count: string; when: string; returns: string; checks: string }[] = [
+  {
+    method: "GET",
+    path: "/v1/attestation/report?nonce=…",
+    count: "1 call",
+    when: "Before any code leaves our server",
+    returns: "Intel TDX quotes from the NEAR AI gateway and the model enclave, NVIDIA GPU evidence, and the enclave's signing key.",
+    checks: "dcap-qvl against Intel collateral, pinned enclave measurements, our nonce in every quote, NVIDIA NRAS verdict.",
+  },
+  {
+    method: "POST",
+    path: "/v1/chat/completions",
+    count: "up to 7 calls",
+    when: "Only after attestation passes",
+    returns: "Three auditors in parallel, up to three challenge rounds and one moderator ruling, all served inside the attested enclave.",
+    checks: "Code is sent to the model NEAR just proved, in delimited, untrusted blocks.",
+  },
+  {
+    method: "GET",
+    path: "/v1/signature/{chat_id}",
+    count: "1 per response",
+    when: "After every model answer",
+    returns: "An ECDSA signature by the enclave key over sha256(request) and sha256(response).",
+    checks: "Recovered signer must match a key the preflight quotes vouched for. Gateway-only signatures don't count.",
+  },
+];
+
 const STEPS = [
   ["Attest", "A fresh nonce goes to NEAR AI Cloud. Intel TDX and NVIDIA evidence must verify, or your code never leaves the server.", "fails closed"],
   ["Audit", "Security, breaking-change and quality auditors read the code in parallel, each through one lens.", "3 calls"],
@@ -96,6 +123,14 @@ export default function Home() {
       <main className="flex flex-1 flex-col">
         <Wrap className="grid grid-cols-1 items-center gap-14 pb-24 pt-14 sm:pt-20 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-10">
           <div className="flex flex-col gap-8">
+            <a
+              href="#near"
+              className="anim-rise inline-flex w-fit items-center gap-2.5 rounded-full border border-line bg-card px-4 py-1.5 font-mono text-base text-ink-2 transition hover:border-ink/40"
+            >
+              <span aria-hidden className="anim-pulse h-2 w-2 rounded-full bg-coral" />
+              Runs on NEAR AI Cloud
+              <span aria-hidden className="text-muted">→</span>
+            </a>
             <h1 className="headline text-[3rem] sm:text-[4.6rem]">
               <span className="anim-rise inline-block">Code review in a sealed room.</span>{" "}
               <span className="tone anim-rise inline-block" style={{ animationDelay: "0.25s" }}>
@@ -103,7 +138,7 @@ export default function Home() {
               </span>
             </h1>
             <p className="anim-rise max-w-xl text-lg leading-relaxed text-ink-2" style={{ animationDelay: "0.45s" }}>
-              Your code goes into a hardware-attested enclave. Three AI auditors pull it apart, argue about what they find, and a moderator rules. You walk
+              Your code goes into a hardware-attested enclave on NEAR AI Cloud. Three AI auditors pull it apart, argue about what they find, and a moderator rules. You walk
               out with the verdict and a signed receipt. The code doesn&apos;t walk out at all.
             </p>
             <div className="anim-rise flex flex-col gap-3 sm:flex-row" style={{ animationDelay: "0.6s" }}>
@@ -178,6 +213,58 @@ export default function Home() {
             ))}
           </ol>
         </Wrap>
+
+        <section className="border-y border-line bg-paper-2/60 py-24 sm:py-28">
+          <Wrap className="flex flex-col gap-12">
+            <SectionHead
+              id="near"
+              title={
+                <>
+                  What happens <span className="tone">on NEAR AI Cloud.</span>
+                </>
+              }
+              lede="Every step of a review is a call to NEAR AI Cloud. Here is the exact sequence one review makes, and what CodeCloak checks before trusting each answer."
+            />
+            <div data-reveal className="on-night overflow-hidden rounded-2xl border border-night-line bg-night text-paper shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-night-line px-5 py-3 font-mono text-base text-paper/60">
+                <span className="flex items-center gap-2">
+                  <span aria-hidden className="anim-pulse h-2 w-2 rounded-full bg-coral" />
+                  cloud-api.near.ai
+                </span>
+                <span>one review · in order</span>
+              </div>
+              <ol className="divide-y divide-night-line">
+                {NEAR_CALLS.map((c, i) => (
+                  <li key={c.path} data-reveal style={d(i * 0.15)} className="grid grid-cols-1 gap-5 px-5 py-6 sm:px-7 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10">
+                    <div className="flex min-w-0 flex-col gap-3">
+                      <span className="font-display text-[1.4rem] italic leading-none text-coral">0{i + 1}</span>
+                      <code className="break-all font-mono text-lg">
+                        <span className="text-coral">{c.method}</span> {c.path}
+                      </code>
+                      <span className="flex flex-wrap gap-2 font-mono text-base">
+                        <span className="rounded-full border border-night-line px-3 py-0.5 text-paper/80">{c.count}</span>
+                        <span className="rounded-full border border-night-line px-3 py-0.5 text-paper/60">{c.when}</span>
+                      </span>
+                    </div>
+                    <dl className="flex min-w-0 flex-col gap-4 leading-relaxed">
+                      <div className="flex flex-col gap-1">
+                        <dt className="font-mono text-base text-paper/50">NEAR returns</dt>
+                        <dd className="text-paper/85">{c.returns}</dd>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <dt className="font-mono text-base text-paper/50">CodeCloak checks</dt>
+                        <dd className="text-paper/85">{c.checks}</dd>
+                      </div>
+                    </dl>
+                  </li>
+                ))}
+              </ol>
+              <p className="border-t border-night-line px-5 py-4 font-mono text-base text-paper/60 sm:px-7">
+                Any failed check stops the review with <span className="text-coral">403 attestation_failed</span>. Your code is never sent.
+              </p>
+            </div>
+          </Wrap>
+        </section>
 
         <section id="swarm" className="on-night scroll-mt-16 border-y border-night-line bg-night py-24 text-paper sm:py-32">
           <Wrap className="grid grid-cols-1 gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
