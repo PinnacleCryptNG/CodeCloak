@@ -233,7 +233,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
                   </span>
                 )}
               </button>
-              <p className="text-center text-base text-muted">About a minute · up to 7 attested, signed model calls</p>
+              <p className="text-center text-base text-muted">About a minute · up to 7 attested, signed calls on NEAR AI Cloud</p>
             </div>
           </div>
 
@@ -265,7 +265,7 @@ export function ReviewApp({ samples }: { samples: SampleView[] }) {
 
         {phase !== "idle" && phase !== "error" ? (
           <Card className="anim-rise p-5 sm:p-7">
-            <Steps phase={phase} elapsed={elapsed} subject={subject} />
+            <Steps phase={phase} elapsed={elapsed} subject={subject} nearCalls={result ? 1 + 2 * result.verified.completions.length : undefined} />
           </Card>
         ) : null}
 
