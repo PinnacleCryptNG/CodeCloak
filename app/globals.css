@@ -14,6 +14,7 @@
   --night: #101217;
   --night-2: #191c23;
   --night-line: #2c303a;
+  --moderator: #16130f;
   --ok: #1d7a4f;
   --bad: #c2321f;
   --warn: #a86400;
@@ -48,6 +49,7 @@
   --night: #060709;
   --night-2: #121419;
   --night-line: #262a33;
+  --moderator: #f2eee6;
   --ok: #46c486;
   --bad: #ff6b57;
   --warn: #e8a43c;
@@ -146,6 +148,7 @@ body {
 /* Night bands stay dark in both themes, so their "paper" text stays light. */
 .on-night {
   --paper: #f4f1ea;
+  --moderator: #16130f;
 }
 .on-night .headline .tone {
   color: var(--coral);
