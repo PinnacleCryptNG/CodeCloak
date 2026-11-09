@@ -24,7 +24,10 @@ export const DEFAULT_TRUSTED_MEASUREMENTS: TrustedMeasurements = {
         rtMr2: "764489f277a8540189761e72b4238ba36d4d647e11bd958d8ab5522af2a4867b0ff63e06b0c4967f1857236244040a5d",
       },
     ],
-    composeTemplates: ["dc14d62b75ffde97f64fdba40c6be681b6818eb12312e1adee60b3cd4de2533b"], // dstack-0.5.12
+    composeTemplates: [
+      "dc14d62b75ffde97f64fdba40c6be681b6818eb12312e1adee60b3cd4de2533b", // dstack-0.5.12
+      "cdb7727578dbbac45b27d46933d4ce84da093891af9eed3ff490ef0d41d1d096", // dstack-0.5.12, cloud-api@sha256:d74c3c3e (2026-11-09)
+    ],
   },
   model: {
     os: [
@@ -45,6 +48,7 @@ export const DEFAULT_TRUSTED_MEASUREMENTS: TrustedMeasurements = {
       "61ca1ea0dfbe92c25c7f54d4c5bc61f44b1ca4c28a4fc13650ecebd5b855be21", // dstack-nvidia-0.5.12 (Qwen/Qwen3.8-27B)
       "69944f4817ee9db24b4d1c9a19148e7b7d2af69f9b164c566a221ccf654de9f6", // dstack-nvidia-0.5.12 (Qwen/Qwen3.8-27B)
       "ecb4e08a964ef5e73cefa2a28bf4b753aaa95a96a51be10547fff9a2330867db", // dstack-nvidia-0.5.11 (z-ai/glm-5.3-flash)
+      "1adf46029d07afd5e1c84b448da6978da2645043c484458dafa37e85ec77d3ba", // dstack-nvidia-0.5.12 (z-ai/glm-5.3-flash, 2026-11-09)
     ],
   },
 };
