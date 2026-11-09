@@ -2,7 +2,9 @@
 
 **Private multi-agent code review on NEAR AI Cloud.** Three AI auditors review your code inside hardware enclaves (TEEs), argue about each other's findings, and a moderator reports consensus *and* disagreements. Before any code leaves the server, CodeCloak verifies the enclaves' attestation, and it fails closed if any check fails.
 
-Built for NEAR HACKATHON. Tracks: **`privacy`**, **`security`**, **`swarms`**.
+Built at NEAR HACKATHON (Nov 2026). Tracks: **Privacy & Private AI** (`privacy`), **AI Security & Defense** (`security`), **AI Swarms** (`swarms`).
+
+It builds one of the ideas Illia Polosukhin listed for NEAR builders on 2026-10-03: "Code review that is fully private - agent that verifiably privately runs code review on private PRs using @near_ai" ([post](https://x.com/ilblackdragon/status/2106269343881519444)).
 
 **Live:** https://codecloak-two.vercel.app — no wallet, no sign-in. It runs on NEAR AI Cloud's production API (`cloud-api.near.ai`). CodeCloak makes no NEAR blockchain transactions and has no smart contract, so there is nothing deployed on NEAR mainnet.
 
@@ -23,6 +25,16 @@ Sending proprietary code to a hosted AI reviewer means trusting the provider not
 - **NEAR AI attestation.** The `/v1/attestation/report` and `/v1/signature/{id}` endpoints are verified as NEAR documents at https://docs.near.ai/cloud/verification. The quote checks are ported from NEAR's [nearai-cloud-verifier](https://github.com/nearai/nearai-cloud-verifier) (Apache-2.0), with thanks.
 - **A swarm of agents** that disagree and reconcile, every one of them inside the attested enclave.
 
+One review is 1 + 2 × (completions) NEAR AI Cloud calls, all made from the server:
+
+| Call | When | What CodeCloak checks |
+| --- | --- | --- |
+| `GET /v1/attestation/report?nonce=…` | once, before any code is sent | gateway and model-enclave Intel TDX quotes (dcap-qvl), pinned measurements, nonce echo, NVIDIA GPU verdict, enclave signing key |
+| `POST /v1/chat/completions` | up to 7 (3 auditors, up to 3 challenges, 1 moderator) | only runs if attestation passed |
+| `GET /v1/signature/{chat_id}` | once per completion | ECDSA signature over the request and response hashes, from the attested signer |
+
+A full review is therefore 15 calls (1 + 7 + 7). The site shows the same sequence in its **What happens on NEAR AI Cloud** section (`/#near`), and the live result shows the count, e.g. "15 NEAR AI Cloud calls, all attested or signed".
+
 Every endpoint and field used is listed in [VERIFIED_STACK.md](VERIFIED_STACK.md).
 
 ## Run it (one command after setup)
@@ -39,14 +51,14 @@ A `NEARAI_API_KEY` exported in your shell overrides `.env.local`. If the key you
 
 ## Do X → see Y
 
-1. **Open http://localhost:3000** (or the live site) → the page opens in dark mode with "Code review in a sealed room. With receipts." The round button in the nav switches to light mode and remembers your choice. There is no wallet and no sign-in.
+1. **Open http://localhost:3000** (or the live site) → the page opens in dark mode with a "Runs on NEAR AI Cloud" pill above "Code review in a sealed room. With receipts." Clicking the pill (or **On NEAR** in the nav) jumps to **What happens on NEAR AI Cloud**, which lists the three NEAR calls above. The round button in the nav switches to light mode and remembers your choice. There is no wallet and no sign-in.
 2. **Click Run a free review →** → you jump to the demo: four fictional samples (Login service · Broken auth, **Orders API · SQL injection**, File uploads · Path traversal, Refunds service · Prompt injection), a **Paste code** tab and **Run private review**.
-3. **Pick Orders API and click Run private review** → the steps go "Verifying enclave…" → "Auditors running…" → "Moderator reconciling…". This takes about 40–80 s (a live production run on 2026-11-06 took 43 s).
+3. **Pick Orders API and click Run private review** → the steps go "Attesting NEAR AI Cloud…" → "Auditors on NEAR AI Cloud…" → "Moderator on NEAR AI Cloud…". This takes about 35–80 s (a live production run on 2026-11-06 took 43 s, a 2026-11-09 run took 35 s). When it finishes, the status line reads "cloud-api.near.ai · 15 NEAR AI Cloud calls, all attested or signed" (fewer when clean code skips the challenge round).
 4. **When it finishes**, you see:
    - **The verdict:** the moderator's summary, a **Swarm confidence** gauge with its vote basis, and counts of findings, disputes and signatures;
-   - under **Each auditor's findings**, the **Security** card flags the **SQL injection in `searchOrders`** (high severity); tap any finding row to see the other auditors' back/dispute votes and reasons;
+   - under **Each auditor's findings**, each card is marked "Signed in model enclave", and the **Security** card flags the **SQL injection in `searchOrders`** (high severity); tap any finding row to see the other auditors' back/dispute votes and reasons;
    - **What the moderator ruled** lists agreed findings and at least one **disagreement** with each auditor's position;
-   - **Proof it ran privately:** "Attested · every response signed", Intel TDX quotes 12/12, NVIDIA GPU verified, Response signatures 7/7, plus the model, signer, nonce and SHA-256 of the reviewed code, with raw checks under **Technical details** and a **Demo verifier scope** footnote that says what is and isn't verified.
+   - **Proof it ran privately:** "Verified against NEAR AI Cloud before your code left our server" and "Attested · every response signed", with each check labelled by its NEAR scope: Intel TDX quotes (NEAR gateway + model enclave, e.g. 16/16; the quote count depends on how many enclaves NEAR serves), NVIDIA GPU (NEAR model enclave GPUs), Signer attested (NEAR enclave signing key) and Response signatures 7/7 (NEAR /v1/signature, per response), plus the model, signer, nonce and SHA-256 of the reviewed code, with raw checks under **Technical details** and a **Demo verifier scope** footnote that says what is and isn't verified.
 5. **Pick Refunds service and run** → the security agent reports the code comment that tells AI reviewers to approve the code, flagging it as a prompt-injection attempt instead of obeying it.
 6. **Click Paste, paste more than 80 KB** → the counter turns red and the button is disabled. Sending it to the API anyway returns `413 code_too_large` with "Pasted code is over the 80 KB limit."
 7. **Remove `NEARAI_API_KEY` from `.env.local`, restart `npm run dev`, and run a review** → a red banner says "The server has no NEAR AI API key configured." The API returns `500 server_not_configured` and nothing is sent anywhere.
@@ -82,16 +94,23 @@ Other checks: `npm test` (78 unit tests), `npm run lint`, `npm run build`.
 - `lib/near-ai/attestation.ts` and `lib/near-ai/tdx.ts`: the attestation preflight (nonce, TDX quote, RTMR3, MRCONFIGID, pinned measurements, NVIDIA). `lib/near-ai/measurements.ts`: the measurement allowlist.
 - `lib/near-ai/chat.ts`: non-streaming completions and signature verification.
 - `lib/near-ai/swarm.ts` and `lib/near-ai/prompts/`: the auditors, the challenge round and the moderator.
-- `app/page.tsx`: the landing page (hero receipt, Built on NEAR, how it works, swarm, live demo, receipt, FAQ). `app/opengraph-image.tsx`: the share image.
+- `app/page.tsx`: the landing page (hero receipt, Built on NEAR, What happens on NEAR AI Cloud, how it works, swarm, live demo, receipt, FAQ). `app/opengraph-image.tsx`: the share image.
 - `components/`: the UI. `ReviewApp.tsx` is the live demo; `ThemeToggle.tsx` and the script in `app/layout.tsx` handle dark/light mode. `samples/`: fictional vulnerable code, labelled "FICTIONAL — for hackathon demo only".
 
 ## Non-goals
 
 No wallets, payments, swaps, Intents or x402. No accounts, GitHub OAuth or storage. No Agent Market or Shade Agents deployment. No non-TEE models on the verified path. Scope is private code review only.
 
+## Hackathon notes
+
+- **Built in the window.** All code was written during NEAR HACKATHON: the first commit is 2026-11-06, after the 2026-10-19 announcement. There is no pre-hackathon baseline and no version on another chain.
+- **Third-party code.** The Intel TDX quote checks, RTMR3 replay and MRCONFIGID check are ported from [nearai/nearai-cloud-verifier](https://github.com/nearai/nearai-cloud-verifier) (Apache-2.0). Runtime libraries: `next`, `react`, `@phala/dcap-qvl-node` (TDX quote verification), `ethers` (ECDSA signer recovery), `jose` (NVIDIA NRAS JWT verification). The code was written with AI coding agents.
+- **Hosted demo.** https://codecloak-two.vercel.app stays up through judging (2026-11-16 to 2026-11-18). It uses the builder's NEAR AI Cloud key, rate-limited to 8 reviews per IP per 10 minutes.
+- **No mainnet deployment.** CodeCloak uses NEAR AI Cloud only, so there is no contract or account to look up.
+
 ## Builder
 
-Built by [PinnacleCryptNG](https://github.com/PinnacleCryptNG). No other NEAR HACKATHON projects by this builder.
+Built by [PinnacleCryptNG](https://github.com/PinnacleCryptNG). The builder's other NEAR HACKATHON project is **[Privue](https://github.com/PinnacleCryptNG/privue)** (private copy trading on NEAR Intents). The two projects are independent.
 
 ## License
 
