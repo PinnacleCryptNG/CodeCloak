@@ -27,6 +27,7 @@ export const DEFAULT_TRUSTED_MEASUREMENTS: TrustedMeasurements = {
     composeTemplates: [
       "dc14d62b75ffde97f64fdba40c6be681b6818eb12312e1adee60b3cd4de2533b", // dstack-0.5.12
       "cdb7727578dbbac45b27d46933d4ce84da093891af9eed3ff490ef0d41d1d096", // dstack-0.5.12, cloud-api@sha256:d74c3c3e (2026-11-09)
+      "53cd435edbc129f848ed0ddce301f7f192446fe39683713a38537820bea7e1fb", // dstack-0.5.12, cloud-api@sha256:d996bb08 (2026-11-20)
     ],
   },
   model: {
@@ -43,12 +44,22 @@ export const DEFAULT_TRUSTED_MEASUREMENTS: TrustedMeasurements = {
         rtMr1: "4ae609807c765916a31d724786ed74bcb97e168a9d937b04936aeef2015c907eba5ac352c6bcd749c246fd62ffb659ec",
         rtMr2: "bd67ab7554dc27ab03a077bc1447a1a67d0624ff547c4c809a8626f12d6a89712f8ec60e781e99b98208574065d21a71",
       },
+      {
+        // os_image_hash 3bb7d262 (2026-11-20)
+        mrTd: "e107136c99ae1745ab299e9462927890b7b1c984d5ef53fa5830584ad4246db663fdf96563b913e9e2471906b26f7aae",
+        rtMr0: "bc122d143ab768565ba5c3774ff5f03a63c89a4df7c1f5ea38d3bd173409d14f8cbdcc36d40e703cccb996a9d9687590",
+        rtMr1: "786417fa26b5d90d1289025506055e511ff09fd608f4727bb3cf159279a52af23117b6248024d0b186aceabebf6f86ec",
+        rtMr2: "41800152afda682372d33b484e357002e2b179f64b7882e0f0529ad2373ad93898a3b4d3ffb9a433f406b986d4f4f291",
+      },
     ],
     composeTemplates: [
       "61ca1ea0dfbe92c25c7f54d4c5bc61f44b1ca4c28a4fc13650ecebd5b855be21", // dstack-nvidia-0.5.12 (Qwen/Qwen3.8-27B)
       "69944f4817ee9db24b4d1c9a19148e7b7d2af69f9b164c566a221ccf654de9f6", // dstack-nvidia-0.5.12 (Qwen/Qwen3.8-27B)
       "ecb4e08a964ef5e73cefa2a28bf4b753aaa95a96a51be10547fff9a2330867db", // dstack-nvidia-0.5.11 (z-ai/glm-5.3-flash)
       "1adf46029d07afd5e1c84b448da6978da2645043c484458dafa37e85ec77d3ba", // dstack-nvidia-0.5.12 (z-ai/glm-5.3-flash, 2026-11-09)
+      "eaad1c490182d0877fb3eb3b864444c88e510f80f441ccbde99421b9b1caef62", // dstack-nvidia-0.5.12, compose-manager@sha256:ae4332fd (Qwen + GLM, 2026-11-20)
+      "2468196544df9b495b8dcb1b162308312e003db7a6e771083b1a2f7d260e91f9", // dstack-nvidia-0.5.11, compose-manager@sha256:ae4332fd (z-ai/glm-5.3-flash, 2026-11-20)
+      "0eaf0785d2e0bdeecd7dee72a186519c8917da3aa1ff84315828b71a98eed1c6", // dstack-nvidia-0.5.11, compose-manager@sha256:a0c07308 (z-ai/glm-5.3-flash, 2026-11-20)
     ],
   },
 };
