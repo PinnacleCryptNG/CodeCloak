@@ -28,6 +28,7 @@ export const DEFAULT_TRUSTED_MEASUREMENTS: TrustedMeasurements = {
       "dc14d62b75ffde97f64fdba40c6be681b6818eb12312e1adee60b3cd4de2533b", // dstack-0.5.12
       "cdb7727578dbbac45b27d46933d4ce84da093891af9eed3ff490ef0d41d1d096", // dstack-0.5.12, cloud-api@sha256:d74c3c3e (2026-11-09)
       "53cd435edbc129f848ed0ddce301f7f192446fe39683713a38537820bea7e1fb", // dstack-0.5.12, cloud-api@sha256:d996bb08 (2026-11-20)
+      "1787a4af87eaf4bb139b555c3148ea6cffb01442b9fd7db4304e23b24f4db993", // same images as 53cd435e, adds AUTH_ADMIN_TOKENS_ONLY env default (2026-11-23)
     ],
   },
   model: {
@@ -60,6 +61,7 @@ export const DEFAULT_TRUSTED_MEASUREMENTS: TrustedMeasurements = {
       "eaad1c490182d0877fb3eb3b864444c88e510f80f441ccbde99421b9b1caef62", // dstack-nvidia-0.5.12, compose-manager@sha256:ae4332fd (Qwen + GLM, 2026-11-20)
       "2468196544df9b495b8dcb1b162308312e003db7a6e771083b1a2f7d260e91f9", // dstack-nvidia-0.5.11, compose-manager@sha256:ae4332fd (z-ai/glm-5.3-flash, 2026-11-20)
       "0eaf0785d2e0bdeecd7dee72a186519c8917da3aa1ff84315828b71a98eed1c6", // dstack-nvidia-0.5.11, compose-manager@sha256:a0c07308 (z-ai/glm-5.3-flash, 2026-11-20)
+      "cad2cf9889000bb6f48e6e33a7cd2c18ec93324c6afec621a54b9ca0d1b8e0f7", // same images as 24681965; per-host INSTANCE_LABEL + prod telemetry endpoint (z-ai/glm-5.3-flash, 2026-11-23)
     ],
   },
 };
